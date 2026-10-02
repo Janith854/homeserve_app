@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "436514344232",
+    "project_id": "homeserve-app-80e98",
+    "storage_bucket": "homeserve-app-80e98.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:436514344232:android:3d1f25fe4fa68629f8941d",
+        "android_client_info": {
+          "package_name": "com.homeserve.homeserve_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzUsY5ajFheBRkxg6wOpsA5gjc7EvohWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
