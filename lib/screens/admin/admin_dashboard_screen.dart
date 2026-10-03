@@ -26,43 +26,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: _buildContent(),
-      bottomNavigationBar: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: BottomNavigationBar(
-          currentIndex: _currentNavIndex,
-          onTap: _onNavTap,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textLight,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.verified_user_outlined),
-              activeIcon: Icon(Icons.verified_user),
-              label: 'Verify',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Customers',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.engineering_outlined),
-              activeIcon: Icon(Icons.engineering),
-              label: 'Providers',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.star_outline),
-              activeIcon: Icon(Icons.star),
-              label: 'Reviews',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-        ),
+
+      // FIX:
+      // BottomNavigationBar must NOT be inside
+      // SingleChildScrollView because it causes
+      // unbounded width constraints.
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentNavIndex,
+        onTap: _onNavTap,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textLight,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.verified_user_outlined),
+            activeIcon: Icon(Icons.verified_user),
+            label: 'Verify',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: 'Customers',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.engineering_outlined),
+            activeIcon: Icon(Icons.engineering),
+            label: 'Providers',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star_outline),
+            activeIcon: Icon(Icons.star),
+            label: 'Reviews',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
@@ -74,19 +76,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         // 0. Provider Verification
         AdminVerificationScreen(
           onAdminNavTap: (index) {
-            if (index == 3) setState(() => _currentNavIndex = 3);
+            if (index == 3) {
+              setState(() => _currentNavIndex = 3);
+            }
           },
         ),
+
         // 1. Customer Management
         _buildCustomerManagementTab(),
+
         // 2. Provider Management
         _buildProviderManagementTab(),
+
         // 3. Reviews & Complaints
         AdminReviewsScreen(
           onAdminNavTap: (index) {
-            if (index == 0) setState(() => _currentNavIndex = 0);
+            if (index == 0) {
+              setState(() => _currentNavIndex = 0);
+            }
           },
         ),
+
         // 4. Admin Profile
         _buildProfileTab(),
       ],
@@ -112,29 +122,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _editCustomer(Map<String, dynamic> data) async {
-    final name = TextEditingController(text: data['fullName']?.toString() ?? '');
+    final name = TextEditingController(
+      text: data['fullName']?.toString() ?? '',
+    );
+
     final phone = TextEditingController(text: data['phone']?.toString() ?? '');
+
     var status = data['accountStatus']?.toString() ?? 'active';
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Customer profile'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(data['email']?.toString() ?? ''),
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Full name')),
-            TextField(controller: phone, decoration: const InputDecoration(labelText: 'Phone')),
-            DropdownButton<String>(
-              value: status,
-              items: const [
-                DropdownMenuItem(value: 'active', child: Text('Active')),
-                DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
-              ],
-              onChanged: (value) => setState(() => status = value ?? status),
-            ),
-          ]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(data['email']?.toString() ?? ''),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Full name'),
+              ),
+              TextField(
+                controller: phone,
+                decoration: const InputDecoration(labelText: 'Phone'),
+              ),
+              DropdownButton<String>(
+                value: status,
+                items: const [
+                  DropdownMenuItem(value: 'active', child: Text('Active')),
+                  DropdownMenuItem(
+                    value: 'suspended',
+                    child: Text('Suspended'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() => status = value ?? status);
+                },
+              ),
+            ],
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
                 await AdminUserService.instance.updateCustomer(
@@ -143,7 +175,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   phone: phone.text,
                   accountStatus: status,
                 );
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
               },
               child: const Text('Save'),
             ),
@@ -151,41 +186,85 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ),
     );
+
     name.dispose();
     phone.dispose();
   }
 
   Future<void> _editProvider(Map<String, dynamic> data) async {
     final name = TextEditingController(text: data['name']?.toString() ?? '');
+
     final phone = TextEditingController(text: data['phone']?.toString() ?? '');
-    final service = TextEditingController(text: data['serviceType']?.toString() ?? '');
-    final experience = TextEditingController(text: data['experience']?.toString() ?? '');
-    final description = TextEditingController(text: data['description']?.toString() ?? '');
+
+    final service = TextEditingController(
+      text: data['serviceType']?.toString() ?? '',
+    );
+
+    final experience = TextEditingController(
+      text: data['experience']?.toString() ?? '',
+    );
+
+    final description = TextEditingController(
+      text: data['description']?.toString() ?? '',
+    );
+
     var status = data['accountStatus']?.toString() ?? 'active';
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Provider profile'),
-          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(data['email']?.toString() ?? ''),
-            Text('Verification: ${data['verificationStatus'] ?? 'approved'}'),
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-            TextField(controller: phone, decoration: const InputDecoration(labelText: 'Phone')),
-            TextField(controller: service, decoration: const InputDecoration(labelText: 'Service type')),
-            TextField(controller: experience, decoration: const InputDecoration(labelText: 'Experience')),
-            TextField(controller: description, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
-            DropdownButton<String>(
-              value: status,
-              items: const [
-                DropdownMenuItem(value: 'active', child: Text('Active')),
-                DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(data['email']?.toString() ?? ''),
+                Text(
+                  'Verification: ${data['verificationStatus'] ?? 'approved'}',
+                ),
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: phone,
+                  decoration: const InputDecoration(labelText: 'Phone'),
+                ),
+                TextField(
+                  controller: service,
+                  decoration: const InputDecoration(labelText: 'Service type'),
+                ),
+                TextField(
+                  controller: experience,
+                  decoration: const InputDecoration(labelText: 'Experience'),
+                ),
+                TextField(
+                  controller: description,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                DropdownButton<String>(
+                  value: status,
+                  items: const [
+                    DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(
+                      value: 'suspended',
+                      child: Text('Suspended'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => status = value ?? status);
+                  },
+                ),
               ],
-              onChanged: (value) => setState(() => status = value ?? status),
             ),
-          ])),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
                 await AdminUserService.instance.updateProvider(
@@ -195,10 +274,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   serviceType: service.text,
                   experience: experience.text,
                   description: description.text,
-                  availableAreas: List<String>.from(data['availableAreas'] ?? const []),
+                  availableAreas: List<String>.from(
+                    data['availableAreas'] ?? const [],
+                  ),
                   accountStatus: status,
                 );
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
               },
               child: const Text('Save'),
             ),
@@ -206,6 +290,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ),
     );
+
     for (final controller in [name, phone, service, experience, description]) {
       controller.dispose();
     }
@@ -213,6 +298,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildProfileTab() {
     final userModel = authNotifier.userModel;
+
     return SingleChildScrollView(
       child: SafeArea(
         child: Padding(
@@ -224,7 +310,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 'Admin Profile',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
+
               const SizedBox(height: 24),
+
               Center(
                 child: Column(
                   children: [
@@ -235,13 +323,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         shape: BoxShape.circle,
                         color: AppColors.primary,
                       ),
-                      child: const Icon(Icons.admin_panel_settings, size: 40, color: Colors.white),
+                      child: const Icon(
+                        Icons.admin_panel_settings,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
+
                     const SizedBox(height: 12),
+
                     Text(
                       userModel?.fullName ?? 'Admin',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
+
                     Text(
                       userModel?.email ?? '',
                       style: Theme.of(context).textTheme.bodySmall,
@@ -249,25 +344,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
+
               Text(
                 'Profile Information',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
+
               const SizedBox(height: 12),
-              _buildProfileInfoCard(label: 'Phone', value: userModel?.phone ?? 'N/A'),
+
+              _buildProfileInfoCard(
+                label: 'Phone',
+                value: userModel?.phone ?? 'N/A',
+              ),
+
               const SizedBox(height: 12),
-              _buildProfileInfoCard(label: 'Email', value: userModel?.email ?? 'N/A'),
+
+              _buildProfileInfoCard(
+                label: 'Email',
+                value: userModel?.email ?? 'N/A',
+              ),
+
               const SizedBox(height: 12),
+
               _buildProfileInfoCard(label: 'Role', value: 'Administrator'),
+
               const SizedBox(height: 24),
+
               ElevatedButton(
                 onPressed: () {
                   // Navigate to edit profile
                 },
                 child: const Text('Edit Profile'),
               ),
+
               const SizedBox(height: 12),
+
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -275,11 +388,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 onPressed: () async {
                   await authNotifier.logout();
+
                   if (mounted) {
                     context.go(AppRouteNames.login);
                   }
                 },
-                child: const Text('Logout', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -342,30 +459,54 @@ class _UserManagementTabState extends State<_UserManagementTab> {
         stream: widget.stream,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Could not load users: ${snapshot.error}'));
+            return Center(
+              child: Text('Could not load users: ${snapshot.error}'),
+            );
           }
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final records = snapshot.data!.docs.map((doc) {
-            return <String, dynamic>{'id': doc.id, ...doc.data()};
-          }).where((data) {
-            final query = _query.trim().toLowerCase();
-            if (query.isEmpty) return true;
-            return [
-              data['fullName'],
-              data['name'],
-              data['email'],
-              data['serviceType'],
-              data['phone'],
-            ].any((value) => value?.toString().toLowerCase().contains(query) == true);
-          }).toList();
-          final activeCount = records.where((data) => data['accountStatus'] != 'suspended').length;
+
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final records = snapshot.data!.docs
+              .map((doc) {
+                return <String, dynamic>{'id': doc.id, ...doc.data()};
+              })
+              .where((data) {
+                final query = _query.trim().toLowerCase();
+
+                if (query.isEmpty) {
+                  return true;
+                }
+
+                return [
+                  data['fullName'],
+                  data['name'],
+                  data['email'],
+                  data['serviceType'],
+                  data['phone'],
+                ].any(
+                  (value) =>
+                      value?.toString().toLowerCase().contains(query) == true,
+                );
+              })
+              .toList();
+
+          final activeCount = records
+              .where((data) => data['accountStatus'] != 'suspended')
+              .length;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(widget.title, style: Theme.of(context).textTheme.headlineMedium),
+                child: Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
               ),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
@@ -376,6 +517,7 @@ class _UserManagementTabState extends State<_UserManagementTab> {
                   onChanged: (value) => setState(() => _query = value),
                 ),
               ),
+
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -386,6 +528,7 @@ class _UserManagementTabState extends State<_UserManagementTab> {
                   ],
                 ),
               ),
+
               Expanded(
                 child: records.isEmpty
                     ? const Center(child: Text('No matching users.'))
@@ -395,18 +538,30 @@ class _UserManagementTabState extends State<_UserManagementTab> {
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final data = records[index];
-                          final name = (data['fullName'] ?? data['name'] ?? 'Unnamed user').toString();
-                          final status = (data['accountStatus'] ?? 'active').toString();
+
+                          final name =
+                              (data['fullName'] ??
+                                      data['name'] ??
+                                      'Unnamed user')
+                                  .toString();
+
+                          final status = (data['accountStatus'] ?? 'active')
+                              .toString();
+
                           return Card(
                             child: ListTile(
                               title: Text(name),
-                              subtitle: Text(widget.isProvider
-                                  ? '${data['serviceType'] ?? 'Service'} · ${data['email'] ?? ''}'
-                                  : '${data['email'] ?? ''}\n${data['phone'] ?? ''}'),
+                              subtitle: Text(
+                                widget.isProvider
+                                    ? '${data['serviceType'] ?? 'Service'} · ${data['email'] ?? ''}'
+                                    : '${data['email'] ?? ''}\n${data['phone'] ?? ''}',
+                              ),
                               isThreeLine: !widget.isProvider,
                               trailing: Chip(
                                 label: Text(status),
-                                backgroundColor: status == 'suspended' ? Colors.red.shade100 : Colors.green.shade100,
+                                backgroundColor: status == 'suspended'
+                                    ? Colors.red.shade100
+                                    : Colors.green.shade100,
                               ),
                               onTap: () => widget.onEdit(data),
                             ),
