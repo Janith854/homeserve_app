@@ -1,12 +1,9 @@
-// Screen 13 — Provider Booking Requests
-// Implements: US4 — Service Provider Job Management & Request Acceptance (Member 4)
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:homeserve_app/services/provider_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
-import 'package:homeserve_app/widgets/widgets.dart';
 
-/// Screen 13: Provider — Booking Requests — US4
-class ProviderBookingRequestsScreen extends StatefulWidget {
+class ProviderBookingRequestsScreen extends StatelessWidget {
   final ValueChanged<int>? onProviderNavTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onMenuTap;
@@ -19,215 +16,136 @@ class ProviderBookingRequestsScreen extends StatefulWidget {
   });
 
   @override
-  State<ProviderBookingRequestsScreen> createState() => _ProviderBookingRequestsScreenState();
-}
-
-class _ProviderBookingRequestsScreenState extends State<ProviderBookingRequestsScreen> {
-  int _navIndex = 0; // 0: Requests, 1: Availability, 2: Profile
-
-  // Placeholder booking requests
-  final List<Map<String, dynamic>> _requests = [
-    {
-      'id': 'r1',
-      'customer': 'Nimasha Perera',
-      'service': 'Plumbing · Today, 2:00 PM',
-      'status': 'Pending',
-    },
-    {
-      'id': 'r2',
-      'customer': 'Suresh Kumara',
-      'service': 'Pipe Repair · Tomorrow, 10:00 AM',
-      'status': 'Pending',
-    },
-    {
-      'id': 'r3',
-      'customer': 'Ayesha Fernando',
-      'service': 'Emergency · Aug 5, 6:30 PM',
-      'status': 'Pending',
-    },
-  ];
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xxl + 2, // 14px
-                  vertical: AppSpacing.xxl + 2, // 14px
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // App Bar
-                    AppBarWithIcon(
-                      title: 'Booking Requests',
-                      leadingIcon: Icons.menu_rounded,
-                      trailingIcon: Icons.notifications_none_rounded,
-                      showBadge: true,
-                      onLeadingPressed: widget.onMenuTap ?? () {
-                        // Open provider drawer
-                      },
-                      onTrailingPressed: widget.onNotificationTap ?? () {
-                        // TODO: Navigate to Notifications (Screen 9)
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Booking Requests List
-                    ..._requests.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final req = entry.value;
-                      final isLast = index == _requests.length - 1;
-
-                      return Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.xl),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              border: Border.all(color: AppColors.border),
-                              borderRadius: BorderRadius.circular(AppRadius.card),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    const PhotoPlaceholder(
-                                      width: 44,
-                                      height: 44,
-                                      icon: Icons.person_outline_rounded,
-                                      isCircular: true,
-                                    ),
-                                    const SizedBox(width: AppSpacing.xl),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            req['customer'] as String,
-                                            style: AppTextStyles.name,
-                                          ),
-                                          const SizedBox(height: AppSpacing.xs),
-                                          Text(
-                                            req['service'] as String,
-                                            style: AppTextStyles.meta,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-
-                                // Accept & Decline Action Buttons
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: PrimaryButton(
-                                        label: 'Accept',
-                                        isSmall: true,
-                                        onPressed: () {
-                                          // TODO: Firebase Firestore update booking status to 'confirmed' / 'accepted'
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.lg),
-                                    Expanded(
-                                      child: DangerButton(
-                                        label: 'Decline',
-                                        isSmall: true,
-                                        isOutline: true,
-                                        onPressed: () {
-                                          // TODO: Firebase Firestore update booking status to 'declined'
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!isLast) const Padding(
-                            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                            child: Divider(color: AppColors.border, thickness: 1),
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ),
-
-            // Provider Bottom Navigation Bar
-            Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(
-                  top: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildProviderNavItem(
-                    index: 0,
-                    icon: Icons.format_list_bulleted_rounded,
-                    label: 'Requests',
-                  ),
-                  _buildProviderNavItem(
-                    index: 1,
-                    icon: Icons.calendar_today_rounded,
-                    label: 'Availability',
-                  ),
-                  _buildProviderNavItem(
-                    index: 2,
-                    icon: Icons.person_outline_rounded,
-                    label: 'Profile',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      appBar: AppBar(title: const Text('Booking Requests')),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: ProviderService.instance.watchBookingRequests(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Could not load requests: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: ProviderService.instance.watchEmergencyRequests(),
+            builder: (context, emergencySnapshot) {
+              if (emergencySnapshot.hasError) {
+                return Center(child: Text('Could not load emergency requests: ${emergencySnapshot.error}'));
+              }
+              if (!emergencySnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final bookings = [
+                ...snapshot.data!.docs,
+                ...emergencySnapshot.data!.docs,
+              ];
+              if (bookings.isEmpty) {
+                return const Center(child: Text('No booking requests yet.'));
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: bookings.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) => _BookingCard(document: bookings[index]),
+              );
+            },
+          );
+        },
+      ),
+      bottomNavigationBar: _ProviderNavigation(
+        selectedIndex: 0,
+        onTap: onProviderNavTap,
       ),
     );
   }
+}
 
-  Widget _buildProviderNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isActive = _navIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _navIndex = index;
-        });
-        widget.onProviderNavTap?.call(index);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: AppIconSize.nav,
-            color: isActive ? AppColors.primary : AppColors.muted,
+class _BookingCard extends StatelessWidget {
+  final QueryDocumentSnapshot<Map<String, dynamic>> document;
+
+  const _BookingCard({required this.document});
+
+  @override
+  Widget build(BuildContext context) {
+    final data = document.data();
+    final status = (data['status'] ?? 'pending').toString();
+    final customer = (data['customerName'] ?? data['customer'] ?? 'Customer').toString();
+    final service = (data['serviceType'] ?? data['service'] ?? 'Service request').toString();
+    final isEmergency = data['bookingType'] == 'emergency';
+    final date = (data['scheduledAt'] ?? data['date'] ?? '').toString();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(customer, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(child: Text(service)),
+            if (isEmergency)
+              const Chip(
+                label: Text('EMERGENCY'),
+                backgroundColor: Colors.red,
+                labelStyle: TextStyle(color: Colors.white),
+              ),
+          ]),
+          if (date.isNotEmpty) Text(date, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          Text('Status: $status'),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              if (status == 'pending')
+                FilledButton(
+                  onPressed: () => ProviderService.instance
+                      .updateBookingStatus(document.id, 'accepted'),
+                  child: const Text('Accept'),
+                ),
+              if (status == 'pending')
+                OutlinedButton(
+                  onPressed: () => ProviderService.instance
+                      .updateBookingStatus(document.id, 'rejected'),
+                  child: const Text('Reject'),
+                ),
+              if (status == 'accepted' || status == 'confirmed')
+                OutlinedButton(
+                  onPressed: () => ProviderService.instance
+                      .updateBookingStatus(document.id, 'in_progress'),
+                  child: const Text('Start job'),
+                ),
+              if (status == 'in_progress')
+                FilledButton(
+                  onPressed: () => ProviderService.instance
+                      .updateBookingStatus(document.id, 'completed'),
+                  child: const Text('Complete'),
+                ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: isActive ? AppTextStyles.navItemActive : AppTextStyles.navItem,
-          ),
-        ],
+        ]),
       ),
+    );
+  }
+}
+
+class _ProviderNavigation extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int>? onTap;
+
+  const _ProviderNavigation({required this.selectedIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+      currentIndex: selectedIndex,
+      onTap: onTap,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Requests'),
+        BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Availability'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+      ],
     );
   }
 }

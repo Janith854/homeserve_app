@@ -1,0 +1,181 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function user(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isAdmin() {
+      return signedIn() && user(request.auth.uid).role == 'admin';
+    }
+
+    function isProvider() {
+      return signedIn() &&
+        user(request.auth.uid).role == 'provider' &&
+        user(request.auth.uid).providerStatus == 'approved' &&
+        user(request.auth.uid).accountStatus == 'active';
+    }
+
+    function isCustomer() {
+      return signedIn() &&
+        user(request.auth.uid).role == 'customer' &&
+        user(request.auth.uid).accountStatus == 'active';
+    }
+
+    function ownUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validAccountStatus(status) {
+      return status == 'active' || status == 'suspended';
+    }
+
+    match /users/{uid} {
+      allow create: if ownUser(uid) &&
+        request.resource.data.role == 'customer' &&
+        request.resource.data.providerStatus == 'none' &&
+        request.resource.data.accountStatus == 'active' &&
+        request.resource.data.uid == uid;
+
+      allow read: if ownUser(uid) || isAdmin();
+
+      allow update: if isAdmin() ||
+        (ownUser(uid) &&
+          resource.data.role == request.resource.data.role &&
+          resource.data.providerStatus == request.resource.data.providerStatus &&
+          resource.data.accountStatus == request.resource.data.accountStatus &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['fullName', 'phone', 'updatedAt']));
+
+      allow delete: if false;
+    }
+
+    match /providers/{providerId} {
+      allow read: if isAdmin() ||
+        (signedIn() &&
+          resource.data.verificationStatus == 'approved' &&
+          resource.data.accountStatus == 'active') ||
+        (isProvider() && providerId == request.auth.uid);
+
+      allow create: if isAdmin();
+
+      allow update: if isAdmin() ||
+        (isProvider() &&
+          providerId == request.auth.uid &&
+          resource.data.verificationStatus == request.resource.data.verificationStatus &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'name', 'phone', 'serviceType', 'experience', 'description',
+              'availableAreas', 'profileImageUrl', 'availability',
+              'updatedAt', 'rating', 'reviewCount'
+            ])) ||
+        (isCustomer() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['rating', 'reviewCount', 'updatedAt']) &&
+          request.resource.data.rating >= 0 &&
+          request.resource.data.rating <= 5 &&
+          request.resource.data.reviewCount ==
+            (resource.data.reviewCount == null ? 1 : resource.data.reviewCount + 1));
+
+      allow delete: if false;
+    }
+
+    match /providerApplications/{applicationId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isCustomer() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAdmin() ||
+        (signedIn() &&
+          (resource.data.customerId == request.auth.uid ||
+           resource.data.providerId == request.auth.uid ||
+           (isProvider() &&
+            resource.data.bookingType == 'emergency' &&
+            resource.data.status == 'pending')));
+
+      allow create: if isCustomer() &&
+        request.resource.data.reviewId == request.resource.data.bookingId &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.paymentStatus == 'pending' &&
+        request.resource.data.bookingType in ['normal', 'emergency'] &&
+        request.resource.data.providerId is string &&
+        request.resource.data.serviceName is string &&
+        request.resource.data.address is string;
+
+      allow update: if isAdmin() ||
+        (isCustomer() &&
+          resource.data.customerId == request.auth.uid &&
+          resource.data.status != 'completed' &&
+          resource.data.status != 'cancelled' &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'paymentStatus', 'updatedAt']) &&
+          ((request.resource.data.status == 'cancelled' &&
+            request.resource.data.paymentStatus == resource.data.paymentStatus) ||
+           (request.resource.data.status == 'confirmed' &&
+            request.resource.data.paymentStatus == 'paid'))) ||
+        (isProvider() &&
+          (resource.data.providerId == request.auth.uid ||
+           (resource.data.bookingType == 'emergency' &&
+            resource.data.status == 'pending')) &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'providerUpdatedAt', 'updatedAt']) &&
+          request.resource.data.status in [
+            'accepted', 'rejected', 'confirmed', 'in_progress', 'completed'
+          ]);
+
+      allow delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if isAdmin() ||
+        (signedIn() &&
+          (resource.data.customerId == request.auth.uid ||
+           resource.data.providerId == request.auth.uid));
+
+      allow create: if isCustomer() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.customerId == request.auth.uid &&
+        get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.providerId == request.resource.data.providerId &&
+        get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status == 'completed';
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /complaints/{complaintId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.customerId == request.auth.uid);
+      allow create: if isCustomer() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'open';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update: if signedIn() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']) &&
+        request.resource.data.isRead == true;
+      allow create: if signedIn() &&
+        (request.resource.data.userId == request.auth.uid || isAdmin() || isProvider()) &&
+        request.resource.data.isRead == false;
+      allow delete: if false;
+    }
+  }
+}

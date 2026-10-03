@@ -2,10 +2,13 @@
 // Provides navigation to: Home/Search, Bookings, Notifications, Profile
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homeserve_app/services/auth_notifier.dart';
+import 'package:homeserve_app/services/notification_service.dart';
+import 'package:homeserve_app/services/booking_service.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   final VoidCallback? onNotificationTap;
@@ -192,123 +195,85 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   }
 
   Widget _buildBookingsTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SafeArea(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: BookingService.instance.watchCustomerBookings(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text('Could not load bookings: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final bookings = snapshot.data!.docs;
+          return ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'My Bookings',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              _buildBookingCard(
-                title: 'Plumbing - Pipe Repair',
-                date: 'Today, 2:00 PM',
-                provider: 'Chamara Bandara',
-                status: 'Confirmed',
-              ),
-              const SizedBox(height: 12),
-              _buildBookingCard(
-                title: 'Electrical - Wiring',
-                date: 'Tomorrow, 10:00 AM',
-                provider: 'Priyanka Jayasuriya',
-                status: 'Pending',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBookingCard({
-    required String title,
-    required String date,
-    required String provider,
-    required String status,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(date, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 4),
-            Text('Provider: $provider', style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: status == 'Confirmed' ? Colors.green[100] : Colors.orange[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      color: status == 'Confirmed' ? Colors.green : Colors.orange,
-                      fontWeight: FontWeight.w500,
+              Text('My Bookings', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 16),
+              if (bookings.isEmpty)
+                const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No bookings yet.')))
+              else
+                ...bookings.map((doc) {
+                  final data = doc.data();
+                  return Card(
+                    child: ListTile(
+                      title: Text(data['serviceName']?.toString() ?? 'Service'),
+                      subtitle: Text('${data['date'] ?? ''} · ${data['time'] ?? ''}'),
+                      trailing: Text(data['status']?.toString() ?? 'pending'),
+                      onTap: () => context.push(AppRouteNames.bookingTracking, extra: doc.id),
                     ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => context.push(AppRouteNames.bookingTracking),
-                  child: const Text('View'),
-                ),
-              ],
-            ),
-          ],
-        ),
+                  );
+                }),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildNotificationsTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SafeArea(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: NotificationService.instance.watchNotifications(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text('Could not load notifications: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final items = [...snapshot.data!.docs]
+            ..sort((a, b) => _notificationDate(b).compareTo(_notificationDate(a)));
+          return ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Notifications',
-                style: Theme.of(context).textTheme.headlineMedium,
+              Row(
+                children: [
+                  Expanded(child: Text('Notifications', style: Theme.of(context).textTheme.headlineMedium)),
+                  TextButton(
+                    onPressed: () => NotificationService.instance.markAllAsRead(snapshot.data!),
+                    child: const Text('Read all'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              _buildNotificationCard(
-                title: 'Booking Confirmed',
-                message: 'Your plumbing service is confirmed for today at 2:00 PM',
-                time: '2 hours ago',
-              ),
-              const SizedBox(height: 12),
-              _buildNotificationCard(
-                title: 'Provider Nearby',
-                message: 'Chamara is 5 minutes away from your location',
-                time: '1 hour ago',
-              ),
-              const SizedBox(height: 12),
-              _buildNotificationCard(
-                title: 'Rate Your Service',
-                message: 'How was your experience with our service?',
-                time: 'Yesterday',
-              ),
+              const SizedBox(height: 16),
+              if (items.isEmpty)
+                const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No notifications yet.')))
+              else
+                ...items.map((doc) {
+                  final data = doc.data();
+                  final unread = data['isRead'] != true;
+                  return Card(
+                    child: ListTile(
+                      title: Text(data['title']?.toString() ?? 'Notification', style: unread ? const TextStyle(fontWeight: FontWeight.bold) : null),
+                      subtitle: Text(data['message']?.toString() ?? ''),
+                      onTap: () => NotificationService.instance.markAsRead(doc.id),
+                    ),
+                  );
+                }),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
+  }
+
+  DateTime _notificationDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final value = doc.data()['createdAt'];
+    return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   Widget _buildNotificationCard({

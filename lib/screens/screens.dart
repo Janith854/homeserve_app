@@ -17,6 +17,7 @@ export 'admin/admin_dashboard_screen.dart';
 export 'home/home_search_screen.dart';
 export 'home/filter_screen.dart';
 export 'provider/provider_profile_screen.dart';
+export 'provider/public_provider_profile_screen.dart';
 export 'booking/price_estimate_screen.dart';
 export 'booking/booking_scheduling_screen.dart';
 

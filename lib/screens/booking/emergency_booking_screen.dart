@@ -4,10 +4,11 @@
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/widgets/widgets.dart';
+import 'package:homeserve_app/services/booking_service.dart';
 
 /// Screen 10: Emergency Booking — FR10
 class EmergencyBookingScreen extends StatefulWidget {
-  final VoidCallback? onRequestUrgentHelp;
+  final ValueChanged<String>? onRequestUrgentHelp;
   final VoidCallback? onBack;
 
   const EmergencyBookingScreen({
@@ -23,7 +24,8 @@ class EmergencyBookingScreen extends StatefulWidget {
 class _EmergencyBookingScreenState extends State<EmergencyBookingScreen> {
   int _selectedCategoryIndex = 0;
   final _issueController = TextEditingController();
-  final _addressController = TextEditingController(text: '123 Galle Road, Colombo 03');
+  final _addressController = TextEditingController();
+  bool _submitting = false;
 
   final List<String> _categories = ['Plumbing', 'Electrical', 'Cleaning'];
 
@@ -167,10 +169,7 @@ class _EmergencyBookingScreenState extends State<EmergencyBookingScreen> {
                     label: 'Request Urgent Help',
                     icon: Icons.warning_amber_rounded,
                     isOutline: false,
-                    onPressed: () {
-                      // TODO: Firebase urgent booking broadcast / priority dispatch
-                      widget.onRequestUrgentHelp?.call();
-                    },
+                    onPressed: _submitting ? null : _submitEmergencyRequest,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
@@ -180,5 +179,33 @@ class _EmergencyBookingScreenState extends State<EmergencyBookingScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _submitEmergencyRequest() async {
+    if (_issueController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Describe the issue and provide an address.')),
+      );
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      final bookingId = await BookingService.instance.createEmergencyBooking(
+        serviceName: _categories[_selectedCategoryIndex],
+        issueDescription: _issueController.text,
+        address: _addressController.text,
+      );
+      if (!mounted) return;
+      widget.onRequestUrgentHelp?.call(bookingId);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not submit emergency request: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 }

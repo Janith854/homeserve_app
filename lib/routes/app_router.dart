@@ -1,5 +1,4 @@
 import 'package:homeserve_app/services/auth_notifier.dart';
-import 'package:homeserve_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homeserve_app/screens/screens.dart';
@@ -38,6 +37,7 @@ class AppRouteNames {
   // Provider
   static const String providerRequests = '/provider/requests';
   static const String providerAvailability = '/provider/availability';
+  static const String providerProfileEdit = '/provider/profile';
 
   // Admin
   static const String adminVerification = '/admin/verification';
@@ -68,12 +68,15 @@ final GoRouter appRouter = GoRouter(
     if (isAuthenticated) {
       final role = authNotifier.userModel?.role ?? 'customer';
       final providerStatus = authNotifier.userModel?.providerStatus ?? 'none';
+      final accountStatus = authNotifier.userModel?.accountStatus ?? 'suspended';
 
       String targetRoute = AppRouteNames.customerDashboard;
 
       if (role == 'admin') {
         targetRoute = AppRouteNames.adminDashboard;
-      } else if (role == 'provider' && providerStatus == 'approved') {
+      } else if (role == 'provider' &&
+          providerStatus == 'approved' &&
+          accountStatus == 'active') {
         targetRoute = AppRouteNames.providerDashboard;
       }
 
@@ -87,10 +90,18 @@ final GoRouter appRouter = GoRouter(
       if (role == 'admin' && location != AppRouteNames.adminDashboard && !location.startsWith('/admin')) {
         return targetRoute;
       }
-      if (role == 'provider' && providerStatus == 'approved' && location != AppRouteNames.providerDashboard && !location.startsWith('/provider')) {
+      if (role == 'provider' &&
+          providerStatus == 'approved' &&
+          accountStatus == 'active' &&
+          location != AppRouteNames.providerDashboard &&
+          !location.startsWith('/provider')) {
         return targetRoute;
       }
-      if (role == 'customer' && (location.startsWith('/admin') || (location.startsWith('/provider') && location != '/provider-profile'))) {
+      if (role != 'admin' &&
+          !(role == 'provider' &&
+              providerStatus == 'approved' &&
+              accountStatus == 'active') &&
+          (location.startsWith('/admin') || location.startsWith('/provider'))) {
         return targetRoute;
       }
     }
@@ -133,12 +144,15 @@ final GoRouter appRouter = GoRouter(
           // Route to appropriate dashboard based on user role
           final role = authNotifier.userModel?.role ?? 'customer';
           final providerStatus = authNotifier.userModel?.providerStatus ?? 'none';
+          final accountStatus = authNotifier.userModel?.accountStatus ?? 'suspended';
 
           String targetRoute = AppRouteNames.customerDashboard;
 
           if (role == 'admin') {
             targetRoute = AppRouteNames.adminDashboard;
-          } else if (role == 'provider' && providerStatus == 'approved') {
+          } else if (role == 'provider' &&
+              providerStatus == 'approved' &&
+              accountStatus == 'active') {
             targetRoute = AppRouteNames.providerDashboard;
           }
 
@@ -159,12 +173,15 @@ final GoRouter appRouter = GoRouter(
           // Route to appropriate dashboard based on user role
           final role = authNotifier.userModel?.role ?? 'customer';
           final providerStatus = authNotifier.userModel?.providerStatus ?? 'none';
+          final accountStatus = authNotifier.userModel?.accountStatus ?? 'suspended';
 
           String targetRoute = AppRouteNames.customerDashboard;
 
           if (role == 'admin') {
             targetRoute = AppRouteNames.adminDashboard;
-          } else if (role == 'provider' && providerStatus == 'approved') {
+          } else if (role == 'provider' &&
+              providerStatus == 'approved' &&
+              accountStatus == 'active') {
             targetRoute = AppRouteNames.providerDashboard;
           }
 
@@ -208,8 +225,7 @@ final GoRouter appRouter = GoRouter(
           if (index == 1) {
             context.push(AppRouteNames.serviceHistory);
           } else if (index == 2) {
-            // Role switcher / Profile: navigate to Provider or Admin views for quick access
-            _showRoleSelectionSheet(context);
+            context.push(AppRouteNames.notifications);
           }
         },
       ),
@@ -228,8 +244,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.providerProfile,
       builder: (context, state) {
-        final providerId = (state.extra as String?) ?? 'p1';
-        return ProviderProfileScreen(
+        final providerId = state.extra as String?;
+        if (providerId == null || providerId.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text('Provider information is unavailable.')),
+          );
+        }
+        return PublicProviderProfileScreen(
           providerId: providerId,
           onBookNow: () => context.push(
             AppRouteNames.priceEstimate,
@@ -244,10 +265,24 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.priceEstimate,
       builder: (context, state) {
-        final providerId = (state.extra as String?) ?? 'p1';
+        final providerId = state.extra as String?;
+        if (providerId == null || providerId.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text('Provider information is unavailable.')),
+          );
+        }
         return PriceEstimateScreen(
           providerId: providerId,
-          onProceedToBooking: () => context.push(AppRouteNames.bookingScheduling),
+          onProceedWithProvider: (provider) => context.push(
+            AppRouteNames.bookingScheduling,
+            extra: {
+              'providerId': provider.id,
+              'serviceId': provider.id,
+              'serviceName': provider.serviceType,
+              'price': ((provider.availability?['serviceCharge'] as num?)?.toDouble() ?? 0.0) +
+                  ((provider.availability?['callOutFee'] as num?)?.toDouble() ?? 0.0),
+            },
+          ),
           onBack: () => context.pop(),
         );
       },
@@ -256,31 +291,64 @@ final GoRouter appRouter = GoRouter(
     // 6. Booking & Scheduling
     GoRoute(
       path: AppRouteNames.bookingScheduling,
-      builder: (context, state) => BookingSchedulingScreen(
-        onConfirmBooking: () => context.push(AppRouteNames.payment),
-        onBack: () => context.pop(),
-      ),
+      builder: (context, state) {
+        final data = state.extra as Map<String, dynamic>?;
+        if (data == null) {
+          return const Scaffold(body: Center(child: Text('Booking information is unavailable.')));
+        }
+        return BookingSchedulingScreen(
+          providerId: data['providerId'] as String? ?? '',
+          serviceId: data['serviceId'] as String? ?? '',
+          serviceName: data['serviceName'] as String? ?? 'Service request',
+          price: (data['price'] as num?)?.toDouble() ?? 0,
+          onConfirmBooking: () {},
+          onBookingCreated: (bookingId) => context.push(
+            AppRouteNames.payment,
+            extra: {
+              'bookingId': bookingId,
+              'serviceName': data['serviceName'],
+              'amount': data['price'],
+            },
+          ),
+          onBack: () => context.pop(),
+        );
+      },
     ),
 
     // 7. Payment
     GoRoute(
       path: AppRouteNames.payment,
-      builder: (context, state) => PaymentScreen(
-        onPaymentSuccess: () => context.go(AppRouteNames.bookingTracking),
-        onBack: () => context.pop(),
-      ),
+      builder: (context, state) {
+        final data = state.extra as Map<String, dynamic>?;
+        if (data == null) {
+          return const Scaffold(body: Center(child: Text('Payment information is unavailable.')));
+        }
+        return PaymentScreen(
+          bookingId: data['bookingId'] as String? ?? '',
+          serviceName: data['serviceName'] as String? ?? 'Service request',
+          amount: (data['amount'] as num?)?.toDouble() ?? 0,
+          onPaymentSuccess: () => context.go(
+            AppRouteNames.bookingTracking,
+            extra: data['bookingId'],
+          ),
+          onBack: () => context.pop(),
+        );
+      },
     ),
 
     // 8. Booking Status Tracking
     GoRoute(
       path: AppRouteNames.bookingTracking,
-      builder: (context, state) => BookingTrackingScreen(
-        onCancelBooking: () => context.go(AppRouteNames.home),
-        onCallProvider: () {
-          // TODO: Phone dialer
-        },
-        onBack: () => context.go(AppRouteNames.home),
-      ),
+      builder: (context, state) {
+        final bookingId = state.extra as String?;
+        if (bookingId == null || bookingId.isEmpty) {
+          return const Scaffold(body: Center(child: Text('Booking information is unavailable.')));
+        }
+        return BookingTrackingScreen(
+          bookingId: bookingId,
+          onBack: () => context.go(AppRouteNames.home),
+        );
+      },
     ),
 
     // 9. Notifications
@@ -288,11 +356,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRouteNames.notifications,
       builder: (context, state) => NotificationsScreen(
         onNotificationTap: (id) {
-          if (id == 'n4') {
-            context.push(AppRouteNames.ratingReview);
-          } else {
-            context.push(AppRouteNames.bookingTracking);
-          }
+          context.push(AppRouteNames.bookingTracking, extra: id);
         },
         onBack: () => context.pop(),
       ),
@@ -302,7 +366,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.emergencyBooking,
       builder: (context, state) => EmergencyBookingScreen(
-        onRequestUrgentHelp: () => context.go(AppRouteNames.bookingTracking),
+        onRequestUrgentHelp: (bookingId) => context.go(
+          AppRouteNames.bookingTracking,
+          extra: bookingId,
+        ),
         onBack: () => context.pop(),
       ),
     ),
@@ -311,7 +378,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.serviceHistory,
       builder: (context, state) => ServiceHistoryScreen(
-        onBookingSelected: (id) => context.push(AppRouteNames.bookingTracking),
+        onBookingSelected: (id) => context.push(
+          AppRouteNames.bookingTracking,
+          extra: id,
+        ),
+        onReviewSelected: (data) => context.push(
+          AppRouteNames.ratingReview,
+          extra: data,
+        ),
         onBack: () => context.pop(),
       ),
     ),
@@ -319,10 +393,21 @@ final GoRouter appRouter = GoRouter(
     // 12. Post-Job Rating & Review
     GoRoute(
       path: AppRouteNames.ratingReview,
-      builder: (context, state) => RatingReviewScreen(
-        onSubmitReview: () => context.go(AppRouteNames.home),
-        onSkip: () => context.go(AppRouteNames.home),
-      ),
+      builder: (context, state) {
+        final data = state.extra as Map<String, dynamic>?;
+        if (data == null) {
+          return const Scaffold(
+            body: Center(child: Text('Review information is unavailable.')),
+          );
+        }
+        return RatingReviewScreen(
+          bookingId: data['bookingId'] as String? ?? '',
+          providerId: data['providerId'] as String? ?? '',
+          providerName: data['providerName'] as String? ?? 'Provider',
+          onSubmitReview: () => context.go(AppRouteNames.home),
+          onSkip: () => context.go(AppRouteNames.home),
+        );
+      },
     ),
 
     // 13. Provider â€” Booking Requests
@@ -333,6 +418,8 @@ final GoRouter appRouter = GoRouter(
         onProviderNavTap: (index) {
           if (index == 1) {
             context.go(AppRouteNames.providerAvailability);
+          } else if (index == 2) {
+            context.go(AppRouteNames.providerProfileEdit);
           }
         },
       ),
@@ -346,10 +433,17 @@ final GoRouter appRouter = GoRouter(
         onProviderNavTap: (index) {
           if (index == 0) {
             context.go(AppRouteNames.providerRequests);
+          } else if (index == 2) {
+            context.go(AppRouteNames.providerProfileEdit);
           }
         },
         onBack: () => context.pop(),
       ),
+    ),
+
+    GoRoute(
+      path: AppRouteNames.providerProfileEdit,
+      builder: (context, state) => const ProviderProfileScreen(),
     ),
 
     // 15. Admin â€” Provider Verification
@@ -378,68 +472,3 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
-
-/// Helper bottom sheet for switching user portals (Customer, Provider, Admin)
-void _showRoleSelectionSheet(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (ctx) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Switch Portal / Role',
-                style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.person, color: Color(0xFF0F6B5C)),
-                title: const Text('Customer Home'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.go(AppRouteNames.home);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.engineering, color: Color(0xFF0F6B5C)),
-                title: const Text('Service Provider Portal (Requests & Availability)'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.go(AppRouteNames.providerRequests);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.admin_panel_settings, color: Color(0xFF0F6B5C)),
-                title: const Text('Admin Console (Verification & Reviews)'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.go(AppRouteNames.adminVerification);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Logout', style: TextStyle(color: Colors.red)),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await AuthService.instance.logout();
-                },
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-
-

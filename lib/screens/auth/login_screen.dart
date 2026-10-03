@@ -27,7 +27,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  int _selectedRoleIndex = 0; // 0: Customer, 1: Service Provider, 2: Admin
   int _selectedTabIndex = 0; // 0: Login, 1: Sign Up
 
   final _emailController = TextEditingController();
@@ -79,8 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
 String? _errorMessage;
   String? _successMessage;
-
-  final List<String> _roles = ['Customer', 'Service Provider', 'Admin'];
 
   @override
   void dispose() {
@@ -211,37 +208,6 @@ String? _errorMessage;
                     ),
                   ),
                   const SizedBox(height: AppSpacing.x4l),
-
-                  // Role Selection Header
-                  Text(
-                    'Login as',
-                    style: AppTextStyles.meta.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Role Chips
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_roles.length, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: ChipFilter(
-                          label: _roles[index],
-                          isActive: _selectedRoleIndex == index,
-                          onTap: () {
-                            setState(() {
-                              _selectedRoleIndex = index;
-                            });
-                          },
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
 
                   // Segmented Tabs: Login / Sign Up
                   TabSelector(
@@ -483,6 +449,5 @@ String? _errorMessage;
     );
   }
 }
-
 
 

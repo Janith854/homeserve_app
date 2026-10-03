@@ -1,147 +1,97 @@
-// Screen 9 — Notifications
-// Implements: FR09 — Push & In-App Notifications (Member 3)
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:homeserve_app/services/notification_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/widgets/widgets.dart';
 
-/// Screen 9: Notifications — FR09
 class NotificationsScreen extends StatelessWidget {
   final ValueChanged<String>? onNotificationTap;
   final VoidCallback? onBack;
 
-  const NotificationsScreen({
-    super.key,
-    this.onNotificationTap,
-    this.onBack,
-  });
-
-  // Placeholder notification items from prototype
-  final List<Map<String, dynamic>> _notifications = const [
-    {
-      'id': 'n1',
-      'title': 'Booking Confirmed',
-      'subtitle': 'Rohan De Silva accepted your request',
-      'time': '2m',
-      'icon': Icons.check,
-    },
-    {
-      'id': 'n2',
-      'title': 'Provider On the Way',
-      'subtitle': 'Arriving in approx. 12 minutes',
-      'time': '10m',
-      'icon': Icons.local_shipping_outlined,
-    },
-    {
-      'id': 'n3',
-      'title': 'Payment Successful',
-      'subtitle': 'Rs. 1,500 paid via Card',
-      'time': '1h',
-      'icon': Icons.payments_outlined,
-    },
-    {
-      'id': 'n4',
-      'title': 'Rate Your Service',
-      'subtitle': 'Let others know how it went',
-      'time': '1d',
-      'icon': Icons.star_border_rounded,
-    },
-  ];
+  const NotificationsScreen({super.key, this.onNotificationTap, this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl + 2, // 14px
-            vertical: AppSpacing.xxl + 2, // 14px
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // App Bar
-              AppBarWithIcon(
-                title: 'Notifications',
-                onLeadingPressed: onBack ?? () => Navigator.of(context).maybePop(),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Notification List
-              ..._notifications.asMap().entries.map((entry) {
-                final index = entry.key;
-                final notif = entry.value;
-                final isLast = index == _notifications.length - 1;
-
-                return Column(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        onNotificationTap?.call(notif['id'] as String);
-                        // TODO: Handle notification tap action / deep link
-                      },
-                      borderRadius: BorderRadius.circular(AppRadius.btn),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.lg,
-                          horizontal: AppSpacing.xs,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Notification Icon Dot
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.primaryLight,
-                              ),
-                              child: Icon(
-                                notif['icon'] as IconData,
-                                size: 16,
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.xl),
-
-                            // Text details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    notif['title'] as String,
-                                    style: AppTextStyles.notifTitle,
-                                  ),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  Text(
-                                    notif['subtitle'] as String,
-                                    style: AppTextStyles.notifSub,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-
-                            // Time badge
-                            Text(
-                              notif['time'] as String,
-                              style: AppTextStyles.notifTime,
-                            ),
-                          ],
-                        ),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: NotificationService.instance.watchNotifications(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text('Could not load notifications: ${snapshot.error}'));
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final notifications = [...snapshot.data!.docs]
+              ..sort((a, b) => _timestamp(b).compareTo(_timestamp(a)));
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl + 2, vertical: AppSpacing.xxl + 2),
+                  child: Row(
+                    children: [
+                      Expanded(child: AppBarWithIcon(title: 'Notifications', onLeadingPressed: onBack ?? () => Navigator.of(context).maybePop())),
+                      TextButton(
+                        onPressed: () => NotificationService.instance.markAllAsRead(snapshot.data!),
+                        child: const Text('Read all'),
                       ),
-                    ),
-                    if (!isLast) const Divider(color: AppColors.border, thickness: 1),
-                  ],
-                );
-              }),
-            ],
-          ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: notifications.isEmpty
+                      ? const Center(child: Text('No notifications yet.'))
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl + 2),
+                          itemCount: notifications.length,
+                          separatorBuilder: (_, __) => const Divider(color: AppColors.border),
+                          itemBuilder: (context, index) {
+                            final doc = notifications[index];
+                            final data = doc.data();
+                            final unread = data['isRead'] != true;
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                              leading: CircleAvatar(
+                                backgroundColor: unread ? AppColors.primaryLight : AppColors.surface,
+                                child: Icon(_iconFor(data['type']?.toString()), color: AppColors.primaryDark),
+                              ),
+                              title: Text(data['title']?.toString() ?? 'Notification', style: unread ? AppTextStyles.notifTitle.copyWith(fontWeight: FontWeight.bold) : AppTextStyles.notifTitle),
+                              subtitle: Text(data['message']?.toString() ?? '', style: AppTextStyles.notifSub),
+                              trailing: Text(_relativeTime(data['createdAt']), style: AppTextStyles.notifTime),
+                              onTap: () async {
+                                if (unread) await NotificationService.instance.markAsRead(doc.id);
+                                final relatedId = data['relatedId']?.toString();
+                                if (relatedId != null && relatedId.isNotEmpty) onNotificationTap?.call(relatedId);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
+  }
+
+  static DateTime _timestamp(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final value = doc.data()['createdAt'];
+    return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static String _relativeTime(Object? value) {
+    if (value is! Timestamp) return 'now';
+    final difference = DateTime.now().difference(value.toDate());
+    if (difference.inMinutes < 1) return 'now';
+    if (difference.inHours < 1) return '${difference.inMinutes}m';
+    if (difference.inDays < 1) return '${difference.inHours}h';
+    return '${difference.inDays}d';
+  }
+
+  static IconData _iconFor(String? type) {
+    if (type == 'review_reminder') return Icons.star_border_rounded;
+    if (type == 'booking_cancelled') return Icons.cancel_outlined;
+    if (type == 'booking_completed') return Icons.check_circle_outline;
+    if (type == 'provider_application') return Icons.verified_outlined;
+    return Icons.notifications_none;
   }
 }

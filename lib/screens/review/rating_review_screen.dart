@@ -4,18 +4,21 @@
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/widgets/widgets.dart';
+import 'package:homeserve_app/services/review_service.dart';
 
 /// Screen 12: Post-Job Rating & Review — FR12
 class RatingReviewScreen extends StatefulWidget {
   final String providerId;
   final String providerName;
+  final String bookingId;
   final VoidCallback? onSubmitReview;
   final VoidCallback? onSkip;
 
   const RatingReviewScreen({
     super.key,
-    this.providerId = 'p1',
-    this.providerName = 'Rohan De Silva',
+    required this.bookingId,
+    this.providerId = '',
+    this.providerName = 'Provider',
     this.onSubmitReview,
     this.onSkip,
   });
@@ -26,6 +29,7 @@ class RatingReviewScreen extends StatefulWidget {
 
 class _RatingReviewScreenState extends State<RatingReviewScreen> {
   double _rating = 4.0;
+  bool _submitting = false;
   final _reviewController = TextEditingController();
   final Set<String> _selectedChips = {'Punctual'};
 
@@ -163,10 +167,7 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
                   // Submit Review Primary Button
                   PrimaryButton(
                     label: 'Submit Review',
-                    onPressed: () {
-                      // TODO: Save review to Firestore 'reviews' collection and recalculate provider average rating
-                      widget.onSubmitReview?.call();
-                    },
+                    onPressed: _submitting ? null : _submit,
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
@@ -188,5 +189,22 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    try {
+      await ReviewService.instance.submitReview(
+        bookingId: widget.bookingId,
+        providerId: widget.providerId,
+        rating: _rating.toInt(),
+        comment: _reviewController.text,
+      );
+      if (mounted) widget.onSubmitReview?.call();
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 }

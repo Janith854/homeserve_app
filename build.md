@@ -1,90 +1,66 @@
-Now implement the Admin Provider Verification system.
+Now implement proper Firebase Firestore Security Rules for HomeServe.
 
-Admin role:
+IMPORTANT:
 
-role = "admin"
+Never use:
 
-Admin Dashboard must have:
+allow read, write: if true;
 
-Provider Verification
+Use authenticated access control.
 
-Display provider applications from:
+Roles are stored in:
 
-providerApplications
+users/{uid}.role
 
-Filter/list:
+Roles:
 
-status = pending
+customer
+provider
+admin
 
-For every application show:
+Rules must enforce:
 
-- Applicant name
-- Email
-- Phone
-- Service type
-- Experience
-- Description
-- Available areas
-- Submitted date
-- Current status
+CUSTOMER:
 
-Actions:
+- Can read/update their own appropriate user data
+- Can read their own bookings
+- Can create appropriate bookings
+- Can update/cancel their own permitted bookings
+- Can create reviews for completed bookings
+- Can read their own notifications
+- Cannot access admin functionality
+- Cannot modify their own role
+- Cannot modify provider verification status
 
-APPROVE
-REJECT
+PROVIDER:
 
-APPROVE behavior:
+- Can read/update own provider profile where appropriate
+- Can read relevant booking requests
+- Can update permitted booking status
+- Can manage own availability
+- Cannot modify own role
+- Cannot modify verificationStatus
+- Cannot approve other providers
 
-1. providerApplications/{applicationId}.status = "approved"
-2. providerApplications.reviewedAt = current timestamp
-3. providerApplications.reviewedBy = admin UID
-4. users/{userId}.role = "provider"
-5. users/{userId}.providerStatus = "approved"
-6. users/{userId}.updatedAt = current timestamp
-7. Create/update providers/{userId}
+ADMIN:
 
-Provider document:
+- Can manage users
+- Can manage provider applications
+- Can manage providers
+- Can manage complaints
+- Can manage appropriate reviews
+- Can access admin functionality
 
-providerId
-userId
-name
-email
-phone
-serviceType
-experience
-description
-availableAreas
-rating
-availability
-verificationStatus = "approved"
-accountStatus = "active"
-createdAt
-updatedAt
+Ensure users cannot elevate themselves to admin/provider by modifying Firestore directly.
 
-REJECT behavior:
+Also review Firebase Storage rules if Storage is being used.
 
-1. providerApplications.status = "rejected"
-2. users/{userId}.role remains "customer"
-3. users/{userId}.providerStatus = "rejected"
-4. Save reviewedBy
-5. Save reviewedAt
+Do not break existing application functionality.
 
-Do not allow non-admin users to approve/reject applications through the UI.
+After changing rules, explain exactly what was secured.
 
-Use Firestore.
-
-After implementation:
+Run:
 
 flutter analyze
 
-Fix errors.
-
-Test the full flow:
-
-Customer applies
-→ pending
-→ Admin sees application
-→ Admin approves
-→ User becomes provider
-
-Report the implementation status.
+and test important Firebase operations.

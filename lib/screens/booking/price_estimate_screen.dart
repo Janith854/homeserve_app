@@ -1,20 +1,19 @@
-// Screen 5 — Price Estimate
-// Implements: FR05 — Automated Cost Estimation (Member 2)
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:homeserve_app/models/provider_model.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
-import 'package:homeserve_app/widgets/widgets.dart';
 
-/// Screen 5: Price Estimate — FR05
 class PriceEstimateScreen extends StatelessWidget {
   final String providerId;
   final VoidCallback? onProceedToBooking;
+  final ValueChanged<ProviderModel>? onProceedWithProvider;
   final VoidCallback? onBack;
 
   const PriceEstimateScreen({
     super.key,
-    this.providerId = 'p1',
+    this.providerId = '',
     this.onProceedToBooking,
+    this.onProceedWithProvider,
     this.onBack,
   });
 
@@ -22,132 +21,58 @@ class PriceEstimateScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl + 2, // 14px
-            vertical: AppSpacing.xxl + 2, // 14px
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom -
-                  28,
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // App Bar
-                  AppBarWithIcon(
-                    title: 'Price Estimate',
-                    onLeadingPressed: onBack ?? () => Navigator.of(context).maybePop(),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Selected Provider Summary Card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                    ),
-                    child: Row(
-                      children: [
-                        const PhotoPlaceholder(
-                          width: 40,
-                          height: 40,
-                          icon: Icons.build_rounded,
-                        ),
-                        const SizedBox(width: AppSpacing.xl),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Rohan De Silva', style: AppTextStyles.name),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text('Plumbing · Pipe Repair', style: AppTextStyles.meta),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Cost Breakdown Section
-                  Text(
-                    'Cost Breakdown',
-                    style: AppTextStyles.meta.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Service Charge Row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Service Charge', style: AppTextStyles.rowSplit),
-                        Text('Rs. 1,200', style: AppTextStyles.rowSplit.copyWith(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-
-                  // Call-out Fee Row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Call-out Fee', style: AppTextStyles.rowSplit),
-                        Text('Rs. 300', style: AppTextStyles.rowSplit.copyWith(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  const Divider(color: AppColors.border, thickness: 1),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Estimated Total Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Estimated Total', style: AppTextStyles.totalRow),
-                      Text('Rs. 1,500', style: AppTextStyles.totalRow),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Disclaimer
-                  Text(
-                    'Final price may vary based on job scope',
-                    style: AppTextStyles.meta,
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const Spacer(),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Proceed to Booking Primary Button
-                  PrimaryButton(
-                    label: 'Proceed to Booking',
-                    onPressed: onProceedToBooking ?? () {
-                      // TODO: Navigate to Booking & Scheduling (Screen 6)
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
+      appBar: AppBar(title: const Text('Price Estimate')),
+      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('providers').doc(providerId).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text('Could not load provider: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.data!.exists) return const Center(child: Text('Provider not found.'));
+          final provider = ProviderModel.fromDoc(snapshot.data!);
+          final callOutFee = (provider.availability?['callOutFee'] as num?)?.toDouble() ?? 0;
+          final serviceCharge = (provider.availability?['serviceCharge'] as num?)?.toDouble() ?? 0;
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              ListTile(
+                leading: provider.photoUrl.isEmpty
+                    ? const CircleAvatar(child: Icon(Icons.build))
+                    : CircleAvatar(backgroundImage: NetworkImage(provider.photoUrl)),
+                title: Text(provider.name),
+                subtitle: Text(provider.serviceType),
               ),
-            ),
-          ),
-        ),
+              const SizedBox(height: 24),
+              const Text('Cost Breakdown'),
+              _row('Service Charge', serviceCharge),
+              _row('Call-out Fee', callOutFee),
+              const Divider(),
+              _row('Estimated Total', serviceCharge + callOutFee, bold: true),
+              const SizedBox(height: 16),
+              const Text('Final price may vary based on job scope.', textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () {
+                  onProceedWithProvider?.call(provider);
+                  if (onProceedWithProvider == null) onProceedToBooking?.call();
+                },
+                child: const Text('Proceed to Booking'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _row(String label, double value, {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : null)),
+          Text('Rs. ${value.toStringAsFixed(0)}', style: TextStyle(fontWeight: bold ? FontWeight.bold : null)),
+        ],
       ),
     );
   }

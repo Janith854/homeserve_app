@@ -6,6 +6,9 @@ import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homeserve_app/services/auth_notifier.dart';
+import 'package:homeserve_app/screens/provider/provider_booking_requests_screen.dart';
+import 'package:homeserve_app/screens/provider/provider_availability_screen.dart';
+import 'package:homeserve_app/screens/provider/provider_profile_screen.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
   const ProviderDashboardScreen({super.key});
@@ -54,145 +57,10 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return IndexedStack(
       index: _currentNavIndex,
       children: [
-        // 0. Booking Requests
-        _buildRequestsTab(),
-        // 1. Availability
-        _buildAvailabilityTab(),
-        // 2. Profile
-        _buildProfileTab(),
+        ProviderBookingRequestsScreen(onProviderNavTap: _onNavTap),
+        ProviderAvailabilityScreen(onProviderNavTap: _onNavTap),
+        const ProviderProfileScreen(),
       ],
-    );
-  }
-
-  Widget _buildRequestsTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Booking Requests',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              _buildMetricRow('Pending', '5', Colors.orange),
-              const SizedBox(height: 12),
-              _buildMetricRow('Confirmed', '12', Colors.green),
-              const SizedBox(height: 24),
-              Text(
-                'Recent Requests',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildRequestCard(
-                customer: 'Nimasha Perera',
-                service: 'Plumbing · Today, 2:00 PM',
-                status: 'Pending',
-              ),
-              const SizedBox(height: 12),
-              _buildRequestCard(
-                customer: 'Suresh Kumara',
-                service: 'Pipe Repair · Tomorrow, 10:00 AM',
-                status: 'Pending',
-              ),
-              const SizedBox(height: 12),
-              _buildRequestCard(
-                customer: 'Ayesha Fernando',
-                service: 'Emergency · Aug 5, 6:30 PM',
-                status: 'Pending',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricRow(String label, String value, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.titleMedium),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRequestCard({
-    required String customer,
-    required String service,
-    required String status,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(customer, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(service, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.check, size: 16),
-                      label: const Text('Accept'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.close, size: 16),
-                      label: const Text('Decline'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:homeserve_app/models/provider_application_model.dart';
 import 'package:homeserve_app/models/provider_model.dart';
+import 'package:homeserve_app/services/notification_service.dart';
 
 /// Service to handle provider verification and approval workflows.
 /// 
@@ -64,7 +65,6 @@ class ProviderVerificationService {
           'reviewedAt': FieldValue.serverTimestamp(),
           'reviewedBy': adminUid,
         });
-
         // 4-6. Update users document
         final userDoc = _db.collection('users').doc(application.userId);
         transaction.update(userDoc, {
@@ -88,6 +88,7 @@ class ProviderVerificationService {
             'description': application.description,
             'availableAreas': application.availableAreas,
             'rating': 0.0,
+            'reviewCount': 0,
             'verificationStatus': 'approved',
             'accountStatus': 'active',
             'createdAt': FieldValue.serverTimestamp(),
@@ -96,6 +97,13 @@ class ProviderVerificationService {
           SetOptions(merge: true),
         );
       });
+      await NotificationService.instance.create(
+        userId: application.userId,
+        title: 'Provider application approved',
+        message: 'Your provider application has been approved.',
+        type: 'provider_application',
+        relatedId: application.id,
+      );
     } catch (e) {
       throw Exception('Failed to approve application: ${e.toString()}');
     }
@@ -125,7 +133,6 @@ class ProviderVerificationService {
           'reviewedAt': FieldValue.serverTimestamp(),
           'reviewedBy': adminUid,
         });
-
         // 4-5. Update users document
         final userDoc = _db.collection('users').doc(application.userId);
         transaction.update(userDoc, {
@@ -133,8 +140,60 @@ class ProviderVerificationService {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       });
+      await NotificationService.instance.create(
+        userId: application.userId,
+        title: 'Provider application rejected',
+        message: 'Your provider application was not approved.',
+        type: 'provider_application',
+        relatedId: application.id,
+      );
     } catch (e) {
       throw Exception('Failed to reject application: ${e.toString()}');
     }
+  }
+
+  Future<String> submitApplication({
+      required String name,
+      required String email,
+      required String phone,
+      required String serviceType,
+      required String experience,
+      required String description,
+      required List<String> availableAreas,
+    }) async {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) throw StateError('You must be signed in to apply.');
+      final reference = _db.collection('providerApplications').doc();
+      await reference.set({
+        'applicationId': reference.id,
+        'userId': userId,
+        'name': name.trim(),
+        'email': email.trim(),
+        'phone': phone.trim(),
+        'serviceType': serviceType.trim(),
+        'experience': experience.trim(),
+        'description': description.trim(),
+        'availableAreas': availableAreas,
+        'status': 'pending',
+        'submittedAt': FieldValue.serverTimestamp(),
+      });
+      await NotificationService.instance.create(
+        userId: userId,
+        title: 'Provider application submitted',
+        message: 'Your provider application is waiting for admin review.',
+        type: 'provider_application',
+        relatedId: reference.id,
+      );
+      final admins = await _db.collection('users').where('role', isEqualTo: 'admin').get();
+      for (final admin in admins.docs) {
+        await NotificationService.instance.create(
+          userId: admin.id,
+          title: 'New provider application',
+          message: '$name submitted a provider application for review.',
+          type: 'provider_application',
+          relatedId: reference.id,
+        );
+      }
+      return reference.id;
   }
 }

@@ -155,7 +155,7 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
                     // ── Search Bar ──────────────────────────────
                     SearchBarWidget(
                       controller: _searchController,
-                      hintText: 'Search for a service...',
+                      hintText: 'Search service or area...',
                       onTap: widget.onFilterTap ?? () {},
                       onChanged: _onSearchChanged,
                     ),
@@ -558,4 +558,3 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
-

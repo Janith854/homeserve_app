@@ -6,6 +6,10 @@ import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homeserve_app/services/auth_notifier.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:homeserve_app/services/admin_user_service.dart';
+import 'package:homeserve_app/screens/admin/admin_verification_screen.dart';
+import 'package:homeserve_app/screens/admin/admin_reviews_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -68,13 +72,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       index: _currentNavIndex,
       children: [
         // 0. Provider Verification
-        _buildVerificationTab(),
+        AdminVerificationScreen(
+          onAdminNavTap: (index) {
+            if (index == 3) setState(() => _currentNavIndex = 3);
+          },
+        ),
         // 1. Customer Management
         _buildCustomerManagementTab(),
         // 2. Provider Management
         _buildProviderManagementTab(),
         // 3. Reviews & Complaints
-        _buildReviewsTab(),
+        AdminReviewsScreen(
+          onAdminNavTap: (index) {
+            if (index == 0) setState(() => _currentNavIndex = 0);
+          },
+        ),
         // 4. Admin Profile
         _buildProfileTab(),
       ],
@@ -179,42 +191,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildCustomerManagementTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Customer Management',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              _buildStatCard('Total Customers', '1,245'),
-              const SizedBox(height: 12),
-              _buildStatCard('Active Users', '980'),
-              const SizedBox(height: 24),
-              Text(
-                'Recent Customers',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildCustomerCard(
-                name: 'Nimasha Perera',
-                email: 'nimasha@email.com',
-                bookings: 5,
-              ),
-              const SizedBox(height: 12),
-              _buildCustomerCard(
-                name: 'Suresh Kumara',
-                email: 'suresh@email.com',
-                bookings: 3,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return _UserManagementTab(
+      title: 'Customer Management',
+      stream: AdminUserService.instance.watchCustomers(),
+      isProvider: false,
+      onEdit: (data) => _editCustomer(data),
     );
   }
 
@@ -244,43 +225,112 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildProviderManagementTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Provider Management',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              _buildStatCard('Total Providers', '340'),
-              const SizedBox(height: 12),
-              _buildStatCard('Approved Providers', '310'),
-              const SizedBox(height: 24),
-              Text(
-                'Active Providers',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildProviderCard(
-                name: 'Chamara Bandara',
-                service: 'Electrical',
-                status: 'Approved',
-              ),
-              const SizedBox(height: 12),
-              _buildProviderCard(
-                name: 'Priyanka Jayasuriya',
-                service: 'Cleaning',
-                status: 'Approved',
-              ),
-            ],
-          ),
+    return _UserManagementTab(
+      title: 'Provider Management',
+      stream: AdminUserService.instance.watchApprovedProviders(),
+      isProvider: true,
+      onEdit: (data) => _editProvider(data),
+    );
+  }
+
+  Future<void> _editCustomer(Map<String, dynamic> data) async {
+    final name = TextEditingController(text: data['fullName']?.toString() ?? '');
+    final phone = TextEditingController(text: data['phone']?.toString() ?? '');
+    var status = data['accountStatus']?.toString() ?? 'active';
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Customer profile'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(data['email']?.toString() ?? ''),
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Full name')),
+            TextField(controller: phone, decoration: const InputDecoration(labelText: 'Phone')),
+            DropdownButton<String>(
+              value: status,
+              items: const [
+                DropdownMenuItem(value: 'active', child: Text('Active')),
+                DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
+              ],
+              onChanged: (value) => setState(() => status = value ?? status),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                await AdminUserService.instance.updateCustomer(
+                  userId: data['id']?.toString() ?? '',
+                  fullName: name.text,
+                  phone: phone.text,
+                  accountStatus: status,
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('Save'),
+            ),
+          ],
         ),
       ),
     );
+    name.dispose();
+    phone.dispose();
+  }
+
+  Future<void> _editProvider(Map<String, dynamic> data) async {
+    final name = TextEditingController(text: data['name']?.toString() ?? '');
+    final phone = TextEditingController(text: data['phone']?.toString() ?? '');
+    final service = TextEditingController(text: data['serviceType']?.toString() ?? '');
+    final experience = TextEditingController(text: data['experience']?.toString() ?? '');
+    final description = TextEditingController(text: data['description']?.toString() ?? '');
+    var status = data['accountStatus']?.toString() ?? 'active';
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Provider profile'),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(data['email']?.toString() ?? ''),
+            Text('Verification: ${data['verificationStatus'] ?? 'approved'}'),
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(controller: phone, decoration: const InputDecoration(labelText: 'Phone')),
+            TextField(controller: service, decoration: const InputDecoration(labelText: 'Service type')),
+            TextField(controller: experience, decoration: const InputDecoration(labelText: 'Experience')),
+            TextField(controller: description, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+            DropdownButton<String>(
+              value: status,
+              items: const [
+                DropdownMenuItem(value: 'active', child: Text('Active')),
+                DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
+              ],
+              onChanged: (value) => setState(() => status = value ?? status),
+            ),
+          ])),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                await AdminUserService.instance.updateProvider(
+                  providerId: data['id']?.toString() ?? '',
+                  name: name.text,
+                  phone: phone.text,
+                  serviceType: service.text,
+                  experience: experience.text,
+                  description: description.text,
+                  availableAreas: List<String>.from(data['availableAreas'] ?? const []),
+                  accountStatus: status,
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    for (final controller in [name, phone, service, experience, description]) {
+      controller.dispose();
+    }
   }
 
   Widget _buildProviderCard({
@@ -495,5 +545,112 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> logout() async {
     await authNotifier.logout();
+  }
+}
+
+class _UserManagementTab extends StatefulWidget {
+  final String title;
+  final Stream<QuerySnapshot<Map<String, dynamic>>> stream;
+  final bool isProvider;
+  final ValueChanged<Map<String, dynamic>> onEdit;
+
+  const _UserManagementTab({
+    required this.title,
+    required this.stream,
+    required this.isProvider,
+    required this.onEdit,
+  });
+
+  @override
+  State<_UserManagementTab> createState() => _UserManagementTabState();
+}
+
+class _UserManagementTabState extends State<_UserManagementTab> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: widget.stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Could not load users: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final records = snapshot.data!.docs.map((doc) {
+            return <String, dynamic>{'id': doc.id, ...doc.data()};
+          }).where((data) {
+            final query = _query.trim().toLowerCase();
+            if (query.isEmpty) return true;
+            return [
+              data['fullName'],
+              data['name'],
+              data['email'],
+              data['serviceType'],
+              data['phone'],
+            ].any((value) => value?.toString().toLowerCase().contains(query) == true);
+          }).toList();
+          final activeCount = records.where((data) => data['accountStatus'] != 'suspended').length;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(widget.title, style: Theme.of(context).textTheme.headlineMedium),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Search by name, email, phone, or service',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Total: ${snapshot.data!.docs.length}'),
+                    Text('Active: $activeCount'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: records.isEmpty
+                    ? const Center(child: Text('No matching users.'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: records.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final data = records[index];
+                          final name = (data['fullName'] ?? data['name'] ?? 'Unnamed user').toString();
+                          final status = (data['accountStatus'] ?? 'active').toString();
+                          return Card(
+                            child: ListTile(
+                              title: Text(name),
+                              subtitle: Text(widget.isProvider
+                                  ? '${data['serviceType'] ?? 'Service'} · ${data['email'] ?? ''}'
+                                  : '${data['email'] ?? ''}\n${data['phone'] ?? ''}'),
+                              isThreeLine: !widget.isProvider,
+                              trailing: Chip(
+                                label: Text(status),
+                                backgroundColor: status == 'suspended' ? Colors.red.shade100 : Colors.green.shade100,
+                              ),
+                              onTap: () => widget.onEdit(data),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

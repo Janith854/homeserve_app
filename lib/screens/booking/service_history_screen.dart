@@ -1,167 +1,91 @@
-// Screen 11 — Service History
-// Implements: FR11 — Service History & Booking Logs (Member 3)
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:homeserve_app/services/booking_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
-import 'package:homeserve_app/widgets/widgets.dart';
 
-/// Screen 11: Service History — FR11
 class ServiceHistoryScreen extends StatefulWidget {
   final ValueChanged<String>? onBookingSelected;
+  final ValueChanged<Map<String, dynamic>>? onReviewSelected;
   final VoidCallback? onBack;
 
-  const ServiceHistoryScreen({
-    super.key,
-    this.onBookingSelected,
-    this.onBack,
-  });
+  const ServiceHistoryScreen({super.key, this.onBookingSelected, this.onReviewSelected, this.onBack});
 
   @override
   State<ServiceHistoryScreen> createState() => _ServiceHistoryScreenState();
 }
 
 class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
-  int _selectedTabIndex = 0; // 0: Upcoming, 1: Completed, 2: Cancelled
-
-  final List<String> _tabs = ['Upcoming', 'Completed', 'Cancelled'];
-
-  // Placeholder history logs
-  final List<Map<String, dynamic>> _historyItems = [
-    {
-      'id': 'b1',
-      'title': 'Plumbing · Aug 3',
-      'provider': 'Rohan De Silva',
-      'status': 'Done',
-      'icon': Icons.build_rounded,
-    },
-    {
-      'id': 'b2',
-      'title': 'Electrical · Jul 28',
-      'provider': 'Kasun Perera',
-      'status': 'Done',
-      'icon': Icons.bolt_rounded,
-    },
-    {
-      'id': 'b3',
-      'title': 'Cleaning · Jul 20',
-      'provider': 'Amara Silva',
-      'status': 'Done',
-      'icon': Icons.cleaning_services_rounded,
-    },
-  ];
+  int _tab = 0;
+  final _tabs = const ['Upcoming', 'Completed', 'Cancelled'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl + 2, // 14px
-            vertical: AppSpacing.xxl + 2, // 14px
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      appBar: AppBar(
+        title: const Text('Service History'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
+        ),
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: BookingService.instance.watchCustomerBookings(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text('Could not load history: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final bookings = snapshot.data!.docs.where((doc) {
+            final status = doc.data()['status']?.toString() ?? 'pending';
+            if (_tab == 1) return status == 'completed';
+            if (_tab == 2) return status == 'cancelled';
+            return status != 'completed' && status != 'cancelled';
+          }).toList();
+          return Column(
             children: [
-              // App Bar
-              AppBarWithIcon(
-                title: 'Service History',
-                leadingIcon: Icons.arrow_back_rounded,
-                onLeadingPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Segmented Tabs
-              TabSelector(
-                tabs: _tabs,
-                selectedIndex: _selectedTabIndex,
-                onTap: (index) {
-                  setState(() {
-                    _selectedTabIndex = index;
-                  });
-                  // TODO: Firebase Firestore query filter by status
-                },
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-
-              // Service Cards List
-              ..._historyItems.map((item) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                  child: InkWell(
-                    onTap: () {
-                      widget.onBookingSelected?.call(item['id'] as String);
-                      // TODO: View booking details modal / page
-                    },
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    child: Container(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        border: Border.all(color: AppColors.border),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                      ),
-                      child: Row(
-                        children: [
-                          PhotoPlaceholder(
-                            width: 40,
-                            height: 40,
-                            icon: item['icon'] as IconData,
-                          ),
-                          const SizedBox(width: AppSpacing.xl),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['title'] as String,
-                                  style: AppTextStyles.name,
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  item['provider'] as String,
-                                  style: AppTextStyles.meta,
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Status Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xl,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
-                            ),
-                            child: Text(
-                              item['status'] as String,
-                              style: AppTextStyles.meta.copyWith(
-                                color: AppColors.primaryDark,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              const SizedBox(height: AppSpacing.xl),
-
-              // View All Details Link
-              Center(
-                child: Text(
-                  'View All Details',
-                  style: AppTextStyles.link,
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SegmentedButton<int>(
+                  segments: [
+                    for (var i = 0; i < _tabs.length; i++)
+                      ButtonSegment(value: i, label: Text(_tabs[i])),
+                  ],
+                  selected: {_tab},
+                  onSelectionChanged: (value) => setState(() => _tab = value.first),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              Expanded(
+                child: bookings.isEmpty
+                    ? const Center(child: Text('No bookings in this section.'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: bookings.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final doc = bookings[index];
+                          final data = doc.data();
+                          return Card(
+                            child: ListTile(
+                              title: Text(data['serviceName']?.toString() ?? 'Service'),
+                              subtitle: Text('${data['date'] ?? ''} · ${data['time'] ?? ''}\n${data['address'] ?? ''}'),
+                              trailing: _tab == 1
+                                  ? IconButton(
+                                      icon: const Icon(Icons.star),
+                                      onPressed: () => widget.onReviewSelected?.call({
+                                        'bookingId': doc.id,
+                                        'providerId': data['providerId']?.toString() ?? '',
+                                        'providerName': data['providerName']?.toString() ?? 'Provider',
+                                      }),
+                                    )
+                                  : Text(data['status']?.toString() ?? 'pending'),
+                              onTap: () => widget.onBookingSelected?.call(doc.id),
+                            ),
+                          );
+                        },
+                      ),
+              ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }

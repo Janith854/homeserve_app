@@ -4,14 +4,21 @@
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/widgets/widgets.dart';
+import 'package:homeserve_app/services/booking_service.dart';
 
 /// Screen 7: Payment — FR07
 class PaymentScreen extends StatefulWidget {
+  final String bookingId;
+  final String serviceName;
+  final double amount;
   final VoidCallback? onPaymentSuccess;
   final VoidCallback? onBack;
 
   const PaymentScreen({
     super.key,
+    required this.bookingId,
+    required this.serviceName,
+    required this.amount,
     this.onPaymentSuccess,
     this.onBack,
   });
@@ -23,9 +30,9 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   int _selectedPaymentMethod = 0; // 0: Card, 1: Cash, 2: Mobile Wallet
 
-  final _cardNumberController = TextEditingController(text: '4111 •••• •••• 1234');
-  final _expiryController = TextEditingController(text: '08/28');
-  final _cvvController = TextEditingController(text: '•••');
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvvController = TextEditingController();
 
   @override
   void dispose() {
@@ -74,9 +81,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Plumbing service', style: AppTextStyles.rowSplit),
+                        Text(widget.serviceName, style: AppTextStyles.rowSplit),
                         Text(
-                          'Rs. 1,500',
+                          'Rs. ${widget.amount.toStringAsFixed(0)}',
                           style: AppTextStyles.rowSplit.copyWith(
                             fontWeight: FontWeight.w700,
                             color: AppColors.primaryDark,
@@ -202,11 +209,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                   // Pay Button
                   PrimaryButton(
-                    label: 'Pay Rs. 1,500',
-                    onPressed: () {
-                      // TODO: Firebase / Payment Gateway processing (Stripe / PayHere)
-                      widget.onPaymentSuccess?.call();
-                    },
+                    label: 'Pay Rs. ${widget.amount.toStringAsFixed(0)}',
+                    onPressed: _completePayment,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
@@ -216,6 +220,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _completePayment() async {
+    try {
+      await BookingService.instance.markPaymentCompleted(widget.bookingId);
+      if (mounted) widget.onPaymentSuccess?.call();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not complete payment: $error')),
+        );
+      }
+    }
   }
 
   Widget _buildPaymentMethodTile({

@@ -1,156 +1,124 @@
-// Screen 4 — Provider Profile
-// Implements: FR04 — Service Provider Profile (Member 2)
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:homeserve_app/theme/app_theme.dart';
-import 'package:homeserve_app/widgets/widgets.dart';
+import 'package:homeserve_app/services/provider_service.dart';
 
-/// Screen 4: Provider Profile — FR04
-class ProviderProfileScreen extends StatelessWidget {
+class ProviderProfileScreen extends StatefulWidget {
   final String providerId;
   final VoidCallback? onBookNow;
   final VoidCallback? onBack;
 
   const ProviderProfileScreen({
     super.key,
-    this.providerId = 'p1',
+    this.providerId = '',
     this.onBookNow,
     this.onBack,
   });
 
   @override
+  State<ProviderProfileScreen> createState() => _ProviderProfileScreenState();
+}
+
+class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  final _service = TextEditingController();
+  final _experience = TextEditingController();
+  final _description = TextEditingController();
+  final _areas = TextEditingController();
+  final _imageUrl = TextEditingController();
+  bool _loaded = false;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    for (final controller in [_name, _phone, _service, _experience, _description, _areas, _imageUrl]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl + 2, // 14px
-            vertical: AppSpacing.xxl + 2, // 14px
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom -
-                  28,
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // App Bar
-                  AppBarWithIcon(
-                    title: 'Profile',
-                    onLeadingPressed: onBack ?? () => Navigator.of(context).maybePop(),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Provider Profile Header
-                  Center(
-                    child: Column(
-                      children: [
-                        const PhotoPlaceholder(
-                          width: 70,
-                          height: 70,
-                          icon: Icons.build_rounded,
-                          isCircular: true,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        Text(
-                          'Rohan De Silva',
-                          style: AppTextStyles.h1.copyWith(fontSize: 16),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        const StatusBadge.verified(
-                          label: 'Verified Provider',
-                          icon: Icons.verified_user_rounded,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const RatingStars(rating: 4.0),
-                            const SizedBox(width: AppSpacing.md),
-                            Text('(32 reviews)', style: AppTextStyles.meta),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Skill Category Chips
-                  const Row(
-                    children: [
-                      ChipFilter(label: 'Plumbing', isActive: false),
-                      SizedBox(width: AppSpacing.md),
-                      ChipFilter(label: 'Pipe Repairs', isActive: false),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // About Section
-                  Text(
-                    'About',
-                    style: AppTextStyles.meta.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    '8 years experience fixing residential plumbing issues across Colombo suburbs.',
-                    style: AppTextStyles.meta.copyWith(color: AppColors.text, height: 1.4),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Reviews Section
-                  Text(
-                    'Reviews',
-                    style: AppTextStyles.meta.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '"Very punctual and professional."',
-                          style: AppTextStyles.name.copyWith(fontSize: 11.5),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        const RatingStars(rating: 5.0, size: 11),
-                      ],
-                    ),
-                  ),
-
-                  const Spacer(),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Book Now Primary Button
-                  PrimaryButton(
-                    label: 'Book Now',
-                    onPressed: onBookNow ?? () {
-                      // TODO: Navigate to Price Estimate (Screen 5)
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
+      appBar: AppBar(title: const Text('Provider Profile')),
+      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: ProviderService.instance.watchProviderProfile(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text('Could not load profile: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          _load(snapshot.data!.data() ?? {});
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (_imageUrl.text.isNotEmpty)
+                Center(child: CircleAvatar(radius: 42, backgroundImage: NetworkImage(_imageUrl.text))),
+              _field(_name, 'Name'),
+              _field(_phone, 'Phone', keyboardType: TextInputType.phone),
+              _field(_service, 'Service type'),
+              _field(_experience, 'Experience'),
+              _field(_description, 'Description', maxLines: 4),
+              _field(_areas, 'Available areas (comma separated)'),
+              _field(_imageUrl, 'Profile image URL'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _saving ? null : _save,
+                child: Text(_saving ? 'Saving...' : 'Save profile'),
               ),
-            ),
-          ),
-        ),
+              const SizedBox(height: 16),
+              const Text('Role, verification status, and account status are managed by administrators.'),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Widget _field(TextEditingController controller, String label,
+      {int maxLines = 1, TextInputType? keyboardType}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      ),
+    );
+  }
+
+  void _load(Map<String, dynamic> data) {
+    if (_loaded) return;
+    _name.text = data['name']?.toString() ?? '';
+    _phone.text = data['phone']?.toString() ?? '';
+    _service.text = data['serviceType']?.toString() ?? '';
+    _experience.text = data['experience']?.toString() ?? '';
+    _description.text = data['description']?.toString() ?? '';
+    _areas.text = List<String>.from(data['availableAreas'] ?? const <String>[]).join(', ');
+    _imageUrl.text = data['profileImageUrl']?.toString() ?? '';
+    _loaded = true;
+  }
+
+  Future<void> _save() async {
+    if (_name.text.trim().isEmpty || _phone.text.trim().isEmpty || _service.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name, phone, and service type are required.')));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ProviderService.instance.updateProfile(
+        name: _name.text,
+        phone: _phone.text,
+        serviceType: _service.text,
+        experience: _experience.text,
+        description: _description.text,
+        availableAreas: _areas.text.split(',').map((area) => area.trim()).where((area) => area.isNotEmpty).toList(),
+        profileImageUrl: _imageUrl.text,
+      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved.')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save profile: $error')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }

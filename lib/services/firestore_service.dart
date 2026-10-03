@@ -16,7 +16,8 @@ class FirestoreService {
   Stream<List<ProviderModel>> watchProviders() {
     return _db
         .collection('providers')
-        .orderBy('rating', descending: true)
+        .where('verificationStatus', isEqualTo: 'approved')
+        .where('accountStatus', isEqualTo: 'active')
         .snapshots()
         .map((snap) =>
             snap.docs.map(ProviderModel.fromDoc).toList());
@@ -29,8 +30,9 @@ class FirestoreService {
 
     return _db
         .collection('providers')
-        .where('category', isEqualTo: category)
-        .orderBy('rating', descending: true)
+        .where('serviceType', isEqualTo: category)
+        .where('verificationStatus', isEqualTo: 'approved')
+        .where('accountStatus', isEqualTo: 'active')
         .snapshots()
         .map((snap) =>
             snap.docs.map(ProviderModel.fromDoc).toList());
@@ -42,18 +44,26 @@ class FirestoreService {
     if (query.isEmpty) {
       final snap = await _db
           .collection('providers')
-          .orderBy('rating', descending: true)
+          .where('verificationStatus', isEqualTo: 'approved')
+          .where('accountStatus', isEqualTo: 'active')
           .get();
       return snap.docs.map(ProviderModel.fromDoc).toList();
     }
 
-    // Firestore prefix query trick: name >= query AND name < query + \uf8ff
     final snap = await _db
         .collection('providers')
-        .orderBy('name')
-        .startAt([query])
-        .endAt(['$query\uf8ff'])
+        .where('verificationStatus', isEqualTo: 'approved')
+        .where('accountStatus', isEqualTo: 'active')
         .get();
-    return snap.docs.map(ProviderModel.fromDoc).toList();
+    final normalizedQuery = query.toLowerCase();
+    return snap.docs
+        .map(ProviderModel.fromDoc)
+        .where((provider) =>
+            provider.name.toLowerCase().contains(normalizedQuery) ||
+            provider.serviceType.toLowerCase().contains(normalizedQuery) ||
+            provider.availableAreas.any(
+              (area) => area.toLowerCase().contains(normalizedQuery),
+            ))
+        .toList();
   }
 }

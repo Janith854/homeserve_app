@@ -30,6 +30,7 @@ class ProviderModel {
   final List<String> availableAreas;
   final double rating;
   final Map<String, dynamic>? availability;
+  final String profileImageUrl;
   final String verificationStatus;
   final String accountStatus;
   final DateTime createdAt;
@@ -47,6 +48,7 @@ class ProviderModel {
     required this.availableAreas,
     this.rating = 0.0,
     this.availability,
+    this.profileImageUrl = '',
     this.verificationStatus = 'approved',
     this.accountStatus = 'active',
     required this.createdAt,
@@ -67,6 +69,7 @@ class ProviderModel {
       availableAreas: List<String>.from(data['availableAreas'] ?? []),
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       availability: data['availability'] as Map<String, dynamic>?,
+      profileImageUrl: data['profileImageUrl'] ?? '',
       verificationStatus: data['verificationStatus'] ?? 'approved',
       accountStatus: data['accountStatus'] ?? 'active',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -87,6 +90,7 @@ class ProviderModel {
       'availableAreas': availableAreas,
       'rating': rating,
       'availability': availability,
+      'profileImageUrl': profileImageUrl,
       'verificationStatus': verificationStatus,
       'accountStatus': accountStatus,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -98,4 +102,10 @@ class ProviderModel {
   String toString() =>
       'ProviderModel(id: $id, name: $name, serviceType: $serviceType, '
       'verificationStatus: $verificationStatus)';
+
+  String get category => serviceType;
+  String get location => availableAreas.isEmpty ? 'Service area not provided' : availableAreas.join(', ');
+  String get photoUrl => profileImageUrl;
+  bool get verified => verificationStatus == 'approved';
+  double get pricePerJob => 0;
 }

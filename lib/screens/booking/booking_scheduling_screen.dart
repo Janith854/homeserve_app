@@ -4,14 +4,25 @@
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/widgets/widgets.dart';
+import 'package:homeserve_app/services/booking_service.dart';
 
 /// Screen 6: Booking & Scheduling — FR06
 class BookingSchedulingScreen extends StatefulWidget {
+  final String providerId;
+  final String serviceId;
+  final String serviceName;
+  final double price;
+  final ValueChanged<String>? onBookingCreated;
   final VoidCallback? onConfirmBooking;
   final VoidCallback? onBack;
 
   const BookingSchedulingScreen({
     super.key,
+    required this.providerId,
+    required this.serviceId,
+    required this.serviceName,
+    required this.price,
+    this.onBookingCreated,
     this.onConfirmBooking,
     this.onBack,
   });
@@ -21,14 +32,15 @@ class BookingSchedulingScreen extends StatefulWidget {
 }
 
 class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
-  int _selectedDay = 3; // default selected day: 3rd
+  int _selectedDay = 3;
   int _selectedTimeSlotIndex = 0; // 0: 9:00 AM
 
-  final _addressController = TextEditingController(text: '123 Galle Road, Colombo 03');
+  final _addressController = TextEditingController();
   final _notesController = TextEditingController();
 
   final List<String> _timeSlots = ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM'];
   final List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -230,10 +242,7 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
                   // Confirm Booking Primary Button
                   PrimaryButton(
                     label: 'Confirm Booking',
-                    onPressed: () {
-                      // TODO: Save booking draft to Firestore and navigate to Payment (Screen 7)
-                      widget.onConfirmBooking?.call();
-                    },
+                    onPressed: _saving ? null : _confirmBooking,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
@@ -243,5 +252,43 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmBooking() async {
+    if (widget.serviceName.trim().isEmpty ||
+        widget.providerId.trim().isEmpty ||
+        widget.serviceId.trim().isEmpty ||
+        _selectedDay < 1 ||
+        _timeSlots[_selectedTimeSlotIndex].isEmpty ||
+        _addressController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Service, provider, date, time, and address are required.')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final now = DateTime.now();
+      final bookingId = await BookingService.instance.createBooking(
+        providerId: widget.providerId,
+        serviceId: widget.serviceId,
+        serviceName: widget.serviceName,
+        date: '${now.year}-${now.month.toString().padLeft(2, '0')}-${_selectedDay.toString().padLeft(2, '0')}',
+        time: _timeSlots[_selectedTimeSlotIndex],
+        address: _addressController.text,
+        price: widget.price,
+      );
+      if (!mounted) return;
+      widget.onBookingCreated?.call(bookingId);
+      widget.onConfirmBooking?.call();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not create booking: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }
