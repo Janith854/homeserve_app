@@ -3,51 +3,99 @@
 /// Maps to a Firestore document in the "providers" collection.
 ///
 /// Expected fields:
-///   name        – String
-///   category    – String
-///   rating      – num (stored as double/int)
-///   verified    – bool
-///   photoUrl    – String? (may be absent)
-///   pricePerJob – num
-///   location    – String
+///   providerId      – String (same as document ID)
+///   userId          – String (reference to users/{userId})
+///   name            – String
+///   email           – String
+///   phone           – String
+///   serviceType     – String
+///   experience      – String
+///   description     – String
+///   availableAreas  – List<String>
+///   rating          – double
+///   availability    – Map (availability schedule)
+///   verificationStatus – String ("approved", "pending", "rejected")
+///   accountStatus   – String ("active", "suspended")
+///   createdAt       – Timestamp
+///   updatedAt       – Timestamp
 class ProviderModel {
   final String id;
+  final String userId;
   final String name;
-  final String category;
+  final String email;
+  final String phone;
+  final String serviceType;
+  final String experience;
+  final String description;
+  final List<String> availableAreas;
   final double rating;
-  final bool verified;
-  final String? photoUrl;
-  final double pricePerJob;
-  final String location;
+  final Map<String, dynamic>? availability;
+  final String verificationStatus;
+  final String accountStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const ProviderModel({
     required this.id,
+    required this.userId,
     required this.name,
-    required this.category,
-    required this.rating,
-    required this.verified,
-    this.photoUrl,
-    required this.pricePerJob,
-    required this.location,
+    required this.email,
+    required this.phone,
+    required this.serviceType,
+    required this.experience,
+    required this.description,
+    required this.availableAreas,
+    this.rating = 0.0,
+    this.availability,
+    this.verificationStatus = 'approved',
+    this.accountStatus = 'active',
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory ProviderModel.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return ProviderModel(
       id: doc.id,
-      name: (data['name'] as String?) ?? '',
-      category: (data['category'] as String?) ?? '',
+      userId: data['userId'] ?? '',
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      serviceType: data['serviceType'] ?? '',
+      experience: data['experience'] ?? '',
+      description: data['description'] ?? '',
+      availableAreas: List<String>.from(data['availableAreas'] ?? []),
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
-      verified: (data['verified'] as bool?) ?? false,
-      photoUrl: data['photoUrl'] as String?,
-      pricePerJob: (data['pricePerJob'] as num?)?.toDouble() ?? 0.0,
-      location: (data['location'] as String?) ?? '',
+      availability: data['availability'] as Map<String, dynamic>?,
+      verificationStatus: data['verificationStatus'] ?? 'approved',
+      accountStatus: data['accountStatus'] ?? 'active',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'providerId': id,
+      'userId': userId,
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'serviceType': serviceType,
+      'experience': experience,
+      'description': description,
+      'availableAreas': availableAreas,
+      'rating': rating,
+      'availability': availability,
+      'verificationStatus': verificationStatus,
+      'accountStatus': accountStatus,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
   }
 
   @override
   String toString() =>
-      'ProviderModel(id: $id, name: $name, category: $category, '
-      'rating: $rating, verified: $verified, pricePerJob: $pricePerJob, '
-      'location: $location)';
+      'ProviderModel(id: $id, name: $name, serviceType: $serviceType, '
+      'verificationStatus: $verificationStatus)';
 }

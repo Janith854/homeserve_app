@@ -17,6 +17,11 @@ class AppRouteNames {
   static const String login = '/login';
   static const String signup = '/signup';
 
+  // Dashboards (Role-based entry points)
+  static const String customerDashboard = '/customer';
+  static const String providerDashboard = '/provider';
+  static const String adminDashboard = '/admin';
+
   // Customer Discovery & Booking
   static const String home = '/';
   static const String filter = '/filter';
@@ -64,12 +69,12 @@ final GoRouter appRouter = GoRouter(
       final role = authNotifier.userModel?.role ?? 'customer';
       final providerStatus = authNotifier.userModel?.providerStatus ?? 'none';
 
-      String targetRoute = AppRouteNames.home;
+      String targetRoute = AppRouteNames.customerDashboard;
 
       if (role == 'admin') {
-        targetRoute = AppRouteNames.adminVerification;
+        targetRoute = AppRouteNames.adminDashboard;
       } else if (role == 'provider' && providerStatus == 'approved') {
-        targetRoute = AppRouteNames.providerRequests;
+        targetRoute = AppRouteNames.providerDashboard;
       }
 
       if (isAuthRoute) {
@@ -78,13 +83,14 @@ final GoRouter appRouter = GoRouter(
 
       final location = state.matchedLocation;
       
-      if (role == 'admin' && !location.startsWith('/admin')) {
+      // Redirect to appropriate dashboard if accessing wrong role route
+      if (role == 'admin' && location != AppRouteNames.adminDashboard && !location.startsWith('/admin')) {
         return targetRoute;
       }
-      if (role == 'provider' && providerStatus == 'approved' && !location.startsWith('/provider')) {
+      if (role == 'provider' && providerStatus == 'approved' && location != AppRouteNames.providerDashboard && !location.startsWith('/provider')) {
         return targetRoute;
       }
-      if (role == 'customer' && (location.startsWith('/admin') || location.startsWith('/provider'))) {
+      if (role == 'customer' && (location.startsWith('/admin') || (location.startsWith('/provider') && location != '/provider-profile'))) {
         return targetRoute;
       }
     }
@@ -123,7 +129,21 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.login,
       builder: (context, state) => LoginScreen(
-        onLoginSuccess: () => context.go(AppRouteNames.home),
+        onLoginSuccess: () {
+          // Route to appropriate dashboard based on user role
+          final role = authNotifier.userModel?.role ?? 'customer';
+          final providerStatus = authNotifier.userModel?.providerStatus ?? 'none';
+
+          String targetRoute = AppRouteNames.customerDashboard;
+
+          if (role == 'admin') {
+            targetRoute = AppRouteNames.adminDashboard;
+          } else if (role == 'provider' && providerStatus == 'approved') {
+            targetRoute = AppRouteNames.providerDashboard;
+          }
+
+          context.go(targetRoute);
+        },
         onNavigateToSignUp: () => context.push(AppRouteNames.signup),
         onForgotPassword: () {
           // TODO: Firebase send password reset email
@@ -135,13 +155,45 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.signup,
       builder: (context, state) => SignUpScreen(
-        onSignUpSuccess: () => context.go(AppRouteNames.home),
+        onSignUpSuccess: () {
+          // Route to appropriate dashboard based on user role
+          final role = authNotifier.userModel?.role ?? 'customer';
+          final providerStatus = authNotifier.userModel?.providerStatus ?? 'none';
+
+          String targetRoute = AppRouteNames.customerDashboard;
+
+          if (role == 'admin') {
+            targetRoute = AppRouteNames.adminDashboard;
+          } else if (role == 'provider' && providerStatus == 'approved') {
+            targetRoute = AppRouteNames.providerDashboard;
+          }
+
+          context.go(targetRoute);
+        },
         onNavigateToLogin: () => context.pop(),
         onBack: () => context.pop(),
       ),
     ),
 
-    // 2. Home / Search
+    // 2a. Customer Dashboard (Role-based entry point)
+    GoRoute(
+      path: AppRouteNames.customerDashboard,
+      builder: (context, state) => const CustomerDashboardScreen(),
+    ),
+
+    // 2b. Provider Dashboard (Role-based entry point)
+    GoRoute(
+      path: AppRouteNames.providerDashboard,
+      builder: (context, state) => const ProviderDashboardScreen(),
+    ),
+
+    // 2c. Admin Dashboard (Role-based entry point)
+    GoRoute(
+      path: AppRouteNames.adminDashboard,
+      builder: (context, state) => const AdminDashboardScreen(),
+    ),
+
+    // 3. Home / Search
     GoRoute(
       path: AppRouteNames.home,
       builder: (context, state) => HomeSearchScreen(

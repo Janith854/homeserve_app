@@ -8,6 +8,11 @@ export 'onboarding/onboarding3_screen.dart';
 export 'auth/login_screen.dart';
 export 'auth/signup_screen.dart';
 
+// Dashboards (Role-based)
+export 'home/customer_dashboard_screen.dart';
+export 'provider/provider_dashboard_screen.dart';
+export 'admin/admin_dashboard_screen.dart';
+
 // Search & Booking
 export 'home/home_search_screen.dart';
 export 'home/filter_screen.dart';

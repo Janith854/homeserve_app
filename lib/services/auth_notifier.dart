@@ -27,6 +27,10 @@ class AuthNotifier extends ChangeNotifier {
       notifyListeners();
     });
   }
+
+  Future<void> logout() async {
+    await AuthService.instance.logout();
+  }
 }
 
 final authNotifier = AuthNotifier();
