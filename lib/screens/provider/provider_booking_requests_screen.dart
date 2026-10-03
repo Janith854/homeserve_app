@@ -48,7 +48,7 @@ class ProviderBookingRequestsScreen extends StatelessWidget {
               return ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: bookings.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) => _BookingCard(document: bookings[index]),
               );
             },

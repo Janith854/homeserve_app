@@ -47,7 +47,7 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: DropdownButtonFormField<String>(
-                  value: _filter,
+                  initialValue: _filter,
                   decoration: const InputDecoration(labelText: 'Filter complaints'),
                   items: const [
                     DropdownMenuItem(value: 'all', child: Text('All')),
@@ -65,7 +65,7 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: complaints.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, index) => _complaintCard(complaints[index]),
                       ),
               ),
@@ -109,7 +109,7 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
           Text(data['description']?.toString() ?? ''),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: status,
+            initialValue: status,
             items: const [
               DropdownMenuItem(value: 'open', child: Text('Open')),
               DropdownMenuItem(value: 'in_review', child: Text('In review')),

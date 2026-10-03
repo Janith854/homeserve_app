@@ -21,6 +21,7 @@ class AppColors {
   // Text
   static const Color text = Color(0xFF1F2937);
   static const Color muted = Color(0xFF6B7280);
+  static const Color textLight = muted;
 
   // Semantic
   static const Color success = Color(0xFF2E7D32);
@@ -48,6 +49,9 @@ class AppColors {
 /// Poppins for headings/buttons, Inter for body — exact sizes/weights from CSS.
 class AppTextStyles {
   AppTextStyles._();
+
+  static TextStyle get body => fieldFilled;
+  static TextStyle get small => meta;
 
   // ── Poppins styles ──
 

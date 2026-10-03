@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:homeserve_app/models/provider_application_model.dart';
-import 'package:homeserve_app/models/provider_model.dart';
 import 'package:homeserve_app/services/notification_service.dart';
 
 /// Service to handle provider verification and approval workflows.

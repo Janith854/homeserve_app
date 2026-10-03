@@ -276,31 +276,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
   }
 
-  Widget _buildNotificationCard({
-    required String title,
-    required String message,
-    required String time,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text(message, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 8),
-            Text(time, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildProfileTab() {
     final userModel = authNotifier.userModel;
     return SingleChildScrollView(
@@ -356,7 +331,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 ),
                 onPressed: () async {
                   await authNotifier.logout();
-                  if (context.mounted) {
+                  if (mounted) {
                     context.go(AppRouteNames.login);
                   }
                 },

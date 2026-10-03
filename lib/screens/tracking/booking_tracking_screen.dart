@@ -28,7 +28,7 @@ class BookingTrackingScreen extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Could not load booking: ${snapshot.error}'));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          final data = snapshot.data!.data();
           if (data == null) return const Center(child: Text('Booking not found.'));
           final status = data['status']?.toString() ?? 'pending';
           final steps = ['pending', 'confirmed', 'in_progress', 'completed'];

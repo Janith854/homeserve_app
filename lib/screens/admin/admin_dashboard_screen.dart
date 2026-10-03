@@ -93,134 +93,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildVerificationTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Provider Verification',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              _buildStatCard('Total Providers', '340'),
-              const SizedBox(height: 12),
-              _buildStatCard('Pending Verification', '18'),
-              const SizedBox(height: 24),
-              Text(
-                'Pending Applications',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildVerificationCard(
-                name: 'Chamara Bandara',
-                details: 'Electrical · NIC + Certificate uploaded',
-              ),
-              const SizedBox(height: 12),
-              _buildVerificationCard(
-                name: 'Priyanka Jayasuriya',
-                details: 'Cleaning · Documents pending',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVerificationCard({
-    required String name,
-    required String details,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(details, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Review'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Approve', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildCustomerManagementTab() {
     return _UserManagementTab(
       title: 'Customer Management',
       stream: AdminUserService.instance.watchCustomers(),
       isProvider: false,
       onEdit: (data) => _editCustomer(data),
-    );
-  }
-
-  Widget _buildCustomerCard({
-    required String name,
-    required String email,
-    required int bookings,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text(email, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 4),
-            Text('Bookings: $bookings', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
     );
   }
 
@@ -333,117 +211,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Widget _buildProviderCard({
-    required String name,
-    required String service,
-    required String status,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: Theme.of(context).textTheme.titleSmall),
-                Text(service, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                status,
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReviewsTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Reviews & Complaints',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              _buildStatCard('Total Reviews', '2,145'),
-              const SizedBox(height: 12),
-              _buildStatCard('Pending Complaints', '8'),
-              const SizedBox(height: 24),
-              Text(
-                'Recent Reviews',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildReviewCard(
-                customer: 'Nimasha Perera',
-                provider: 'Chamara Bandara',
-                rating: 5,
-                comment: 'Excellent service and very professional',
-              ),
-              const SizedBox(height: 12),
-              _buildReviewCard(
-                customer: 'Suresh Kumara',
-                provider: 'Priyanka Jayasuriya',
-                rating: 4,
-                comment: 'Good work but a bit late',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReviewCard({
-    required String customer,
-    required String provider,
-    required int rating,
-    required String comment,
-  }) {
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(customer, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text('Provider: $provider', style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 4),
-            Text('★' * rating, style: const TextStyle(color: Colors.orange, fontSize: 14)),
-            const SizedBox(height: 4),
-            Text(comment, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildProfileTab() {
     final userModel = authNotifier.userModel;
     return SingleChildScrollView(
@@ -508,7 +275,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 onPressed: () async {
                   await authNotifier.logout();
-                  if (context.mounted) {
+                  if (mounted) {
                     context.go(AppRouteNames.login);
                   }
                 },
@@ -625,7 +392,7 @@ class _UserManagementTabState extends State<_UserManagementTab> {
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: records.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final data = records[index];
                           final name = (data['fullName'] ?? data['name'] ?? 'Unnamed user').toString();

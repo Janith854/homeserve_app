@@ -24,7 +24,7 @@ class ReviewService {
 
     await _db.runTransaction((transaction) async {
       final booking = await transaction.get(bookingRef);
-      final bookingData = booking.data() as Map<String, dynamic>?;
+      final bookingData = booking.data();
       if (!booking.exists ||
           bookingData?['customerId'] != customerId ||
           bookingData?['providerId'] != providerId ||
@@ -38,7 +38,7 @@ class ReviewService {
       }
 
       final provider = await transaction.get(providerRef);
-      final providerData = provider.data() as Map<String, dynamic>? ?? {};
+      final providerData = provider.data() ?? {};
       final oldCount = (providerData['reviewCount'] as num?)?.toInt() ?? 0;
       final oldRating = (providerData['rating'] as num?)?.toDouble() ?? 0;
       final newCount = oldCount + 1;

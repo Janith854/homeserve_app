@@ -349,7 +349,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   vertical: AppSpacing.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.btn),
                 ),
                 child: Text(

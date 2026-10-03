@@ -11,9 +11,9 @@
 ///   serviceType     – String
 ///   experience      – String
 ///   description     – String
-///   availableAreas  – List<String>
+///   availableAreas  – `List<String>`
 ///   rating          – double
-///   availability    – Map (availability schedule)
+///   availability    - Map (availability schedule)
 ///   verificationStatus – String ("approved", "pending", "rejected")
 ///   accountStatus   – String ("active", "suspended")
 ///   createdAt       – Timestamp
