@@ -83,15 +83,6 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
           );
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        onTap: widget.onProviderNavTap,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Requests'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Availability'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
     );
   }
 

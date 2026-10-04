@@ -105,6 +105,7 @@ class ProviderService {
     required String experience,
     required String description,
     required List<String> availableAreas,
+    required String price,
     required String profileImageUrl,
   }) async {
     await _assertProviderAccess();
@@ -115,6 +116,7 @@ class ProviderService {
       'experience': experience.trim(),
       'description': description.trim(),
       'availableAreas': availableAreas,
+      'price': price.trim(),
       'profileImageUrl': profileImageUrl.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

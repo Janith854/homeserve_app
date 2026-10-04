@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Maps to a Firestore document in the "providers" collection.
 ///
@@ -33,6 +33,7 @@ class ProviderModel {
   final String profileImageUrl;
   final String verificationStatus;
   final String accountStatus;
+  final String price;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -51,6 +52,7 @@ class ProviderModel {
     this.profileImageUrl = '',
     this.verificationStatus = 'approved',
     this.accountStatus = 'active',
+    this.price = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -72,6 +74,7 @@ class ProviderModel {
       profileImageUrl: data['profileImageUrl'] ?? '',
       verificationStatus: data['verificationStatus'] ?? 'approved',
       accountStatus: data['accountStatus'] ?? 'active',
+      price: data['price'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -93,6 +96,7 @@ class ProviderModel {
       'profileImageUrl': profileImageUrl,
       'verificationStatus': verificationStatus,
       'accountStatus': accountStatus,
+      'price': price,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -107,5 +111,5 @@ class ProviderModel {
   String get location => availableAreas.isEmpty ? 'Service area not provided' : availableAreas.join(', ');
   String get photoUrl => profileImageUrl;
   bool get verified => verificationStatus == 'approved';
-  double get pricePerJob => 0;
+  double get pricePerJob => 0; // Keeping this for backward compatibility if needed, but it might be unused.
 }

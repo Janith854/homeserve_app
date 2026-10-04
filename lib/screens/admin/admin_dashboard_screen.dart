@@ -1,7 +1,9 @@
 // Admin Dashboard
 // Provides navigation to: Provider Verification, Customer Management, Provider Management, Reviews & Complaints, Admin Profile
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
@@ -193,19 +195,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _editProvider(Map<String, dynamic> data) async {
     final name = TextEditingController(text: data['name']?.toString() ?? '');
-
     final phone = TextEditingController(text: data['phone']?.toString() ?? '');
-
     final service = TextEditingController(
       text: data['serviceType']?.toString() ?? '',
     );
-
     final experience = TextEditingController(
       text: data['experience']?.toString() ?? '',
     );
-
     final description = TextEditingController(
       text: data['description']?.toString() ?? '',
+    );
+    final price = TextEditingController(
+      text: data['price']?.toString() ?? '',
+    );
+    final imageUrl = TextEditingController(
+      text: data['profileImageUrl']?.toString() ?? '',
     );
 
     var status = data['accountStatus']?.toString() ?? 'active';
@@ -213,85 +217,180 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Provider profile'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(data['email']?.toString() ?? ''),
-                Text(
-                  'Verification: ${data['verificationStatus'] ?? 'approved'}',
-                ),
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                ),
-                TextField(
-                  controller: phone,
-                  decoration: const InputDecoration(labelText: 'Phone'),
-                ),
-                TextField(
-                  controller: service,
-                  decoration: const InputDecoration(labelText: 'Service type'),
-                ),
-                TextField(
-                  controller: experience,
-                  decoration: const InputDecoration(labelText: 'Experience'),
-                ),
-                TextField(
-                  controller: description,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                ),
-                DropdownButton<String>(
-                  value: status,
-                  items: const [
-                    DropdownMenuItem(value: 'active', child: Text('Active')),
-                    DropdownMenuItem(
-                      value: 'suspended',
-                      child: Text('Suspended'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setState(() => status = value ?? status);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                await AdminUserService.instance.updateProvider(
-                  providerId: data['id']?.toString() ?? '',
-                  name: name.text,
-                  phone: phone.text,
-                  serviceType: service.text,
-                  experience: experience.text,
-                  description: description.text,
-                  availableAreas: List<String>.from(
-                    data['availableAreas'] ?? const [],
-                  ),
-                  accountStatus: status,
-                );
+        builder: (context, setDialogState) {
+          ImageProvider? getProfileImage(String url) {
+            final trimmed = url.trim();
+            if (trimmed.isEmpty) return null;
+            if (trimmed.startsWith('data:image')) {
+              try {
+                final base64Data = trimmed.split(',').last;
+                return MemoryImage(base64Decode(base64Data));
+              } catch (_) {
+                return null;
+              }
+            }
+            return NetworkImage(trimmed);
+          }
 
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                }
-              },
-              child: const Text('Save'),
+          Future<void> pickImage() async {
+            try {
+              final picker = ImagePicker();
+              final XFile? image = await picker.pickImage(
+                source: ImageSource.gallery,
+                maxWidth: 600,
+                maxHeight: 600,
+                imageQuality: 80,
+              );
+              if (image != null) {
+                final bytes = await image.readAsBytes();
+                final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                setDialogState(() {
+                  imageUrl.text = base64String;
+                });
+              }
+            } catch (e) {
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Could not pick image: $e')),
+                );
+              }
+            }
+          }
+
+          final hasImage = imageUrl.text.trim().isNotEmpty;
+          final imageProvider = getProfileImage(imageUrl.text);
+
+          return AlertDialog(
+            title: const Text('Provider profile'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: pickImage,
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: AppColors.primaryLight,
+                      backgroundImage: imageProvider,
+                      child: !hasImage
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.add_a_photo_outlined, size: 22, color: AppColors.primary),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Upload Photo',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            )
+                          : null,
+                    ),
+                  ),
+                  if (hasImage)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: pickImage,
+                          child: const Text('Change Photo'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              imageUrl.text = '';
+                            });
+                          },
+                          child: const Text('Remove', style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    )
+                  else
+                    TextButton(
+                      onPressed: pickImage,
+                      child: const Text('Upload Photo'),
+                    ),
+                  Text(data['email']?.toString() ?? ''),
+                  Text(
+                    'Verification: ${data['verificationStatus'] ?? 'approved'}',
+                  ),
+                  TextField(
+                    controller: name,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                  ),
+                  TextField(
+                    controller: phone,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                  ),
+                  TextField(
+                    controller: service,
+                    decoration: const InputDecoration(labelText: 'Service type'),
+                  ),
+                  TextField(
+                    controller: experience,
+                    decoration: const InputDecoration(labelText: 'Experience'),
+                  ),
+                  TextField(
+                    controller: description,
+                    maxLines: 3,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                  ),
+                  TextField(
+                    controller: price,
+                    decoration: const InputDecoration(labelText: 'Price / Rate'),
+                  ),
+                  DropdownButton<String>(
+                    value: status,
+                    items: const [
+                      DropdownMenuItem(value: 'active', child: Text('Active')),
+                      DropdownMenuItem(
+                        value: 'suspended',
+                        child: Text('Suspended'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() => status = value ?? status);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  await AdminUserService.instance.updateProvider(
+                    providerId: data['id']?.toString() ?? '',
+                    name: name.text,
+                    phone: phone.text,
+                    serviceType: service.text,
+                    experience: experience.text,
+                    description: description.text,
+                    availableAreas: List<String>.from(
+                      data['availableAreas'] ?? const [],
+                    ),
+                    accountStatus: status,
+                    price: price.text,
+                    profileImageUrl: imageUrl.text,
+                  );
+
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    for (final controller in [name, phone, service, experience, description]) {
+    for (final controller in [name, phone, service, experience, description, price, imageUrl]) {
       controller.dispose();
     }
   }

@@ -50,10 +50,12 @@ class AdminUserService {
     required String description,
     required List<String> availableAreas,
     required String accountStatus,
+    String? price,
+    String? profileImageUrl,
   }) async {
     await _assertAdmin();
     _validateStatus(accountStatus);
-    await _db.collection('providers').doc(providerId).update({
+    final updates = <String, dynamic>{
       'name': name.trim(),
       'phone': phone.trim(),
       'serviceType': serviceType.trim(),
@@ -62,7 +64,14 @@ class AdminUserService {
       'availableAreas': availableAreas,
       'accountStatus': accountStatus,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+    if (price != null) {
+      updates['price'] = price.trim();
+    }
+    if (profileImageUrl != null) {
+      updates['profileImageUrl'] = profileImageUrl.trim();
+    }
+    await _db.collection('providers').doc(providerId).update(updates);
     await _db.collection('users').doc(providerId).update({
       'fullName': name.trim(),
       'phone': phone.trim(),

@@ -11,20 +11,11 @@ class ProviderApplicationService {
 
   String? get _uid => _auth.currentUser?.uid;
 
-  /// Submits a new provider application to Firestore.
-  /// Also updates the user's document to set providerStatus = "pending".
-  Future<void> submitApplication({
-    required String fullName,
-    required String phone,
-    required String serviceType,
-    required String experience,
-    required String description,
-    required List<String> availableAreas,
-  }) async {
+  /// Fetches the user's current pending provider application if it exists.
+  Future<Map<String, dynamic>?> getPendingApplication() async {
     final uid = _uid;
-    if (uid == null) throw Exception('User not authenticated.');
+    if (uid == null) return null;
 
-    // Check for existing pending application
     final existing = await _db
         .collection('providerApplications')
         .where('userId', isEqualTo: uid)
@@ -33,23 +24,49 @@ class ProviderApplicationService {
         .get();
 
     if (existing.docs.isNotEmpty) {
-      throw Exception('You already have a pending application.');
+      return {'id': existing.docs.first.id, ...existing.docs.first.data()};
     }
+    return null;
+  }
 
-    // Save application document
-    await _db.collection('providerApplications').add({
-      'userId': uid,
+  /// Submits a new provider application or updates an existing pending one.
+  Future<void> submitApplication({
+    required String fullName,
+    required String phone,
+    required String serviceType,
+    required String experience,
+    required String description,
+    required List<String> availableAreas,
+    required String price,
+    String? profileImageUrl,
+  }) async {
+    final uid = _uid;
+    if (uid == null) throw Exception('User not authenticated.');
+
+    final existingApp = await getPendingApplication();
+
+    final data = <String, dynamic>{
       'name': fullName,
       'phone': phone,
       'serviceType': serviceType,
       'experience': experience,
       'description': description,
       'availableAreas': availableAreas,
-      'status': 'pending',
-      'submittedAt': FieldValue.serverTimestamp(),
-      'reviewedBy': null,
-      'reviewedAt': null,
-    });
+      'price': price,
+      'profileImageUrl': profileImageUrl ?? '',
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (existingApp != null) {
+      await _db.collection('providerApplications').doc(existingApp['id']).update(data);
+    } else {
+      data['userId'] = uid;
+      data['status'] = 'pending';
+      data['submittedAt'] = FieldValue.serverTimestamp();
+      data['reviewedBy'] = null;
+      data['reviewedAt'] = null;
+      await _db.collection('providerApplications').add(data);
+    }
 
     // Update user's providerStatus to "pending"
     await _db.collection('users').doc(uid).update({

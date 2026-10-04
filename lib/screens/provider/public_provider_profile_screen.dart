@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/models/provider_model.dart';
@@ -15,6 +16,20 @@ class PublicProviderProfileScreen extends StatelessWidget {
     this.onBookNow,
     this.onBack,
   });
+
+  ImageProvider? _getProfileImage(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('data:image')) {
+      try {
+        final base64Data = trimmed.split(',').last;
+        return MemoryImage(base64Decode(base64Data));
+      } catch (_) {
+        return null;
+      }
+    }
+    return NetworkImage(trimmed);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +70,7 @@ class PublicProviderProfileScreen extends StatelessWidget {
                       )
                     : CircleAvatar(
                         radius: 42,
-                        backgroundImage: NetworkImage(provider.profileImageUrl),
+                        backgroundImage: _getProfileImage(provider.profileImageUrl),
                       ),
               ),
               const SizedBox(height: 12),
@@ -79,6 +94,7 @@ class PublicProviderProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _section('Service', provider.serviceType),
+              _section('Price / Rate', provider.price.isNotEmpty ? provider.price : 'Contact for price'),
               _section('Experience', provider.experience),
               _section('About', provider.description),
               _section(

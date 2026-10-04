@@ -55,10 +55,6 @@ class ProviderBookingRequestsScreen extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: _ProviderNavigation(
-        selectedIndex: 0,
-        onTap: onProviderNavTap,
-      ),
     );
   }
 }
@@ -126,26 +122,6 @@ class _BookingCard extends StatelessWidget {
           ),
         ]),
       ),
-    );
-  }
-}
-
-class _ProviderNavigation extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int>? onTap;
-
-  const _ProviderNavigation({required this.selectedIndex, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: selectedIndex,
-      onTap: onTap,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Requests'),
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Availability'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-      ],
     );
   }
 }

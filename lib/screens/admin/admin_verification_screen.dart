@@ -23,7 +23,6 @@ class AdminVerificationScreen extends StatefulWidget {
 }
 
 class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
-  int _adminNavIndex = 0; // 0: Verification, 1: Reviews, 2: Settings
   late final ProviderVerificationService _verificationService;
 
   @override
@@ -226,37 +225,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 ),
               ),
             ),
-
-            // Admin Bottom Navigation Bar
-            Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(
-                  top: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildAdminNavItem(
-                    index: 0,
-                    icon: Icons.verified_user_rounded,
-                    label: 'Verification',
-                  ),
-                  _buildAdminNavItem(
-                    index: 1,
-                    icon: Icons.flag_rounded,
-                    label: 'Reviews',
-                  ),
-                  _buildAdminNavItem(
-                    index: 2,
-                    icon: Icons.settings_rounded,
-                    label: 'Settings',
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -422,36 +390,5 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  Widget _buildAdminNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isActive = _adminNavIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _adminNavIndex = index;
-        });
-        widget.onAdminNavTap?.call(index);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: AppIconSize.nav,
-            color: isActive ? AppColors.primary : AppColors.muted,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: isActive ? AppTextStyles.navItemActive : AppTextStyles.navItem,
-          ),
-        ],
-      ),
-    );
   }
 }

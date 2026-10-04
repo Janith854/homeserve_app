@@ -42,7 +42,12 @@ class PriceEstimateScreen extends StatelessWidget {
                 subtitle: Text(provider.serviceType),
               ),
               const SizedBox(height: 24),
-              const Text('Cost Breakdown'),
+              const Text('Cost Breakdown', style: TextStyle(fontWeight: FontWeight.bold)),
+              if (provider.price.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text('Provider Rate: ${provider.price}'),
+                ),
               _row('Service Charge', serviceCharge),
               _row('Call-out Fee', callOutFee),
               const Divider(),

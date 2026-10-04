@@ -1,7 +1,9 @@
 // Provider Application Form Screen
 // Allows a customer to apply to become a service provider.
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:homeserve_app/services/provider_application_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 
@@ -29,10 +31,80 @@ class _ProviderApplicationScreenState
   final _experienceController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _areasController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _imageUrlController = TextEditingController();
 
   String? _selectedServiceType;
 
   bool _isSubmitting = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingApplication();
+  }
+
+  Future<void> _loadExistingApplication() async {
+    try {
+      final existing = await ProviderApplicationService.instance.getPendingApplication();
+      if (existing != null && mounted) {
+        setState(() {
+          _fullNameController.text = existing['name']?.toString() ?? '';
+          _phoneController.text = existing['phone']?.toString() ?? '';
+          _selectedServiceType = existing['serviceType']?.toString();
+          _experienceController.text = existing['experience']?.toString() ?? '';
+          _descriptionController.text = existing['description']?.toString() ?? '';
+          _areasController.text = (existing['availableAreas'] as List<dynamic>?)?.join(', ') ?? '';
+          _priceController.text = existing['price']?.toString() ?? '';
+          _imageUrlController.text = existing['profileImageUrl']?.toString() ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading existing application: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  ImageProvider? _getProfileImage(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('data:image')) {
+      try {
+        final base64Data = trimmed.split(',').last;
+        return MemoryImage(base64Decode(base64Data));
+      } catch (_) {
+        return null;
+      }
+    }
+    return NetworkImage(trimmed);
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        setState(() {
+          _imageUrlController.text = base64String;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not pick image: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -41,6 +113,8 @@ class _ProviderApplicationScreenState
     _experienceController.dispose();
     _descriptionController.dispose();
     _areasController.dispose();
+    _priceController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -68,6 +142,8 @@ class _ProviderApplicationScreenState
         experience: _experienceController.text.trim(),
         description: _descriptionController.text.trim(),
         availableAreas: areas,
+        price: _priceController.text.trim(),
+        profileImageUrl: _imageUrlController.text.trim(),
       );
 
       if (mounted) {
@@ -141,9 +217,11 @@ class _ProviderApplicationScreenState
           onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -186,6 +264,78 @@ class _ProviderApplicationScreenState
                       ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Profile Photo
+              Center(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: AppColors.primaryLight,
+                            backgroundImage: _getProfileImage(_imageUrlController.text),
+                            child: _imageUrlController.text.trim().isEmpty
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.add_a_photo_outlined, size: 28, color: AppColors.primary),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Upload Photo',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    if (_imageUrlController.text.trim().isNotEmpty)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: _pickImage,
+                            child: const Text('Change Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _imageUrlController.text = '';
+                              });
+                            },
+                            child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
+                          ),
+                        ],
+                      )
+                    else
+                      TextButton(
+                        onPressed: _pickImage,
+                        child: const Text('Upload Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -288,6 +438,17 @@ class _ProviderApplicationScreenState
                 'Separate multiple areas with commas.',
                 style: AppTextStyles.meta,
               ),
+              const SizedBox(height: 16),
+
+              // Price
+              _buildFieldLabel('Price / Rate *'),
+              _buildTextField(
+                controller: _priceController,
+                hint: 'e.g. \$50/hr or \$100 flat',
+                icon: Icons.attach_money_outlined,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Price/Rate is required' : null,
+              ),
               const SizedBox(height: 28),
 
               // Submit button
@@ -311,7 +472,7 @@ class _ProviderApplicationScreenState
                           ),
                         )
                       : const Text(
-                          'Submit Application',
+                          'Save / Update Application',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
