@@ -5,11 +5,13 @@ import 'package:homeserve_app/theme/app_theme.dart';
 class BookingTrackingScreen extends StatelessWidget {
   final String bookingId;
   final VoidCallback? onBack;
+  final ValueChanged<Map<String, dynamic>>? onReviewSelected;
 
   const BookingTrackingScreen({
     super.key,
     required this.bookingId,
     this.onBack,
+    this.onReviewSelected,
   });
 
   @override
@@ -66,6 +68,17 @@ class BookingTrackingScreen extends StatelessWidget {
                     }
                   },
                   child: const Text('Cancel Booking'),
+                ),
+              if (status == 'completed')
+                FilledButton(
+                  onPressed: () {
+                    onReviewSelected?.call({
+                      'bookingId': bookingId,
+                      'providerId': data['providerId']?.toString() ?? '',
+                      'providerName': data['providerName']?.toString() ?? 'Provider',
+                    });
+                  },
+                  child: const Text('Rate and Review'),
                 ),
             ],
           );

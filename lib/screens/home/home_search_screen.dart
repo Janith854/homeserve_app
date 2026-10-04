@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/models/provider_model.dart';
@@ -29,7 +29,6 @@ class HomeSearchScreen extends StatefulWidget {
 class _HomeSearchScreenState extends State<HomeSearchScreen> {
   // ── Navigation ──────────────────────────────────────────────
   int _selectedCategoryIndex = 0; // 0 = "All"
-  int _currentNavIndex = 0;
 
   // ── Search ───────────────────────────────────────────────────
   final _searchController = TextEditingController();
@@ -42,8 +41,6 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
     'Plumbing',
     'Electrical',
     'Cleaning',
-    'Carpentry',
-    'Painting',
   ];
 
   // ── Firestore stream ─────────────────────────────────────────
@@ -113,10 +110,6 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
         return Icons.bolt_rounded;
       case 'cleaning':
         return Icons.cleaning_services_rounded;
-      case 'carpentry':
-        return Icons.carpenter_rounded;
-      case 'painting':
-        return Icons.format_paint_rounded;
       case 'plumbing':
       default:
         return Icons.build_rounded;
@@ -248,15 +241,6 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
                   ],
                 ),
               ),
-            ),
-
-            // ── Bottom Navigation ─────────────────────────────
-            BottomNavBar(
-              currentIndex: _currentNavIndex,
-              onTap: (index) {
-                setState(() => _currentNavIndex = index);
-                widget.onNavTap?.call(index);
-              },
             ),
           ],
         ),

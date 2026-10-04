@@ -32,5 +32,6 @@ export 'booking/service_history_screen.dart';
 export 'review/rating_review_screen.dart';
 export 'provider/provider_booking_requests_screen.dart';
 export 'provider/provider_availability_screen.dart';
+export 'provider/provider_application_screen.dart';
 export 'admin/admin_verification_screen.dart';
 export 'admin/admin_reviews_screen.dart';

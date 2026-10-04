@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:homeserve_app/models/provider_model.dart';
 
 /// Thin wrapper around Firestore reads for the "providers" collection.
@@ -27,15 +27,17 @@ class FirestoreService {
   /// Pass null or empty string to get all providers.
   Stream<List<ProviderModel>> watchProvidersByCategory(String? category) {
     if (category == null || category.isEmpty) return watchProviders();
+    final lowerCat = category.toLowerCase();
 
     return _db
         .collection('providers')
-        .where('serviceType', isEqualTo: category)
         .where('verificationStatus', isEqualTo: 'approved')
         .where('accountStatus', isEqualTo: 'active')
         .snapshots()
-        .map((snap) =>
-            snap.docs.map(ProviderModel.fromDoc).toList());
+        .map((snap) => snap.docs
+            .map(ProviderModel.fromDoc)
+            .where((p) => p.serviceType.toLowerCase() == lowerCat)
+            .toList());
   }
 
   /// Returns a one-time fetch of providers whose name contains [query]

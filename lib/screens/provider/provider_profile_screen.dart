@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:homeserve_app/routes/app_router.dart';
+import 'package:homeserve_app/services/auth_notifier.dart';
 import 'package:homeserve_app/services/provider_service.dart';
 
 class ProviderProfileScreen extends StatefulWidget {
@@ -66,6 +69,20 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
               ),
               const SizedBox(height: 16),
               const Text('Role, verification status, and account status are managed by administrators.'),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () async {
+                  final router = GoRouter.of(context);
+                  await authNotifier.logout();
+                  router.go(AppRouteNames.login);
+                },
+                child: const Text('Logout', style: TextStyle(color: Colors.white)),
+              ),
+              const SizedBox(height: 16),
             ],
           );
         },

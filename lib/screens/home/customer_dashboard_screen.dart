@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:homeserve_app/services/auth_notifier.dart';
 import 'package:homeserve_app/services/notification_service.dart';
 import 'package:homeserve_app/services/booking_service.dart';
+import 'package:homeserve_app/services/provider_application_service.dart';
+import 'package:homeserve_app/screens/home/home_search_screen.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   final VoidCallback? onNotificationTap;
@@ -86,111 +88,18 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   }
 
   Widget _buildHomeTab() {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Welcome Back!',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              // Quick Actions
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildActionCard(
-                      icon: Icons.bolt,
-                      label: 'Emergency',
-                      onTap: () {
-                        context.push(AppRouteNames.emergencyBooking);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildActionCard(
-                      icon: Icons.search,
-                      label: 'Search',
-                      onTap: () {
-                        context.push(AppRouteNames.filter);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Browse Services
-              Text(
-                'Browse Services',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildServiceGrid(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCard({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        color: Colors.white,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 32, color: AppColors.primary),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildServiceGrid() {
-    final services = ['Plumbing', 'Electrical', 'Cleaning', 'Carpentry'];
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.2,
-      children: services
-          .map((service) => Card(
-                color: Colors.white,
-                elevation: 1,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Center(
-                  child: Text(service, style: Theme.of(context).textTheme.labelMedium),
-                ),
-              ))
-          .toList(),
+    return HomeSearchScreen(
+      onNotificationTap: widget.onNotificationTap,
+      onEmergencyBookingTap: widget.onEmergencyBookingTap,
+      onProviderTap: widget.onProviderTap,
+      onFilterTap: widget.onFilterTap,
+      onNavTap: (index) {
+        if (index == 1) {
+          context.push(AppRouteNames.serviceHistory);
+        } else if (index == 2) {
+          context.push(AppRouteNames.notifications);
+        }
+      },
     );
   }
 
@@ -278,69 +187,216 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
   Widget _buildProfileTab() {
     final userModel = authNotifier.userModel;
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'My Profile',
-                style: Theme.of(context).textTheme.headlineMedium,
+    return StreamBuilder<String>(
+      stream: ProviderApplicationService.instance.watchProviderStatus(),
+      builder: (context, snapshot) {
+        final providerStatus = snapshot.data ?? userModel?.providerStatus ?? 'none';
+        return SingleChildScrollView(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'My Profile',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.primary,
+                          ),
+                          child: const Icon(Icons.person, size: 40, color: Colors.white),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          userModel?.fullName ?? 'User',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        Text(
+                          userModel?.email ?? '',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Profile Information',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildProfileInfoCard(label: 'Phone', value: userModel?.phone ?? 'N/A'),
+                  const SizedBox(height: 12),
+                  _buildProfileInfoCard(label: 'Email', value: userModel?.email ?? 'N/A'),
+                  const SizedBox(height: 24),
+
+                  // ── Become a Service Provider section ──────────────────
+                  _buildProviderSection(providerStatus),
+                  const SizedBox(height: 24),
+
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () async {
+                      final router = GoRouter.of(context);
+                      await authNotifier.logout();
+                      router.go(AppRouteNames.login);
+                    },
+                    child: const Text('Logout', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Center(
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProviderSection(String providerStatus) {
+    if (providerStatus == 'approved') {
+      // Already an approved provider
+      return Card(
+        color: const Color(0xFFE8F5E9),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF2E7D32), width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: const [
+              Icon(Icons.verified, color: Color(0xFF2E7D32), size: 28),
+              SizedBox(width: 12),
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary,
+                    Text(
+                      'Service Provider Approved',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2E7D32),
+                        fontSize: 14,
                       ),
-                      child: const Icon(Icons.person, size: 40, color: Colors.white),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 2),
                     Text(
-                      userModel?.fullName ?? 'User',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Text(
-                      userModel?.email ?? '',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      'Your provider account is active.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF4CAF50)),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Profile Information',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              _buildProfileInfoCard(label: 'Phone', value: userModel?.phone ?? 'N/A'),
-              const SizedBox(height: 12),
-              _buildProfileInfoCard(label: 'Email', value: userModel?.email ?? 'N/A'),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (providerStatus == 'pending') {
+      // Application pending review
+      return Card(
+        color: AppColors.severityMedBg,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.accent, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.hourglass_top_rounded, color: AppColors.accent, size: 28),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Application Pending',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF8A5A10),
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Your application is under review. We\'ll notify you soon.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF8A5A10)),
+                    ),
+                  ],
                 ),
-                onPressed: () async {
-                  await authNotifier.logout();
-                  if (mounted) {
-                    context.go(AppRouteNames.login);
-                  }
-                },
-                child: const Text('Logout', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
         ),
-      ),
+      );
+    }
+
+    // 'none' or 'rejected' — show the apply button
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (providerStatus == 'rejected') ...[
+          Card(
+            color: const Color(0xFFFBEAEA),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: AppColors.danger, width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppColors.danger, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Your previous application was not approved. '
+                      'You may apply again.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF8A2F2F)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: const Icon(Icons.build_outlined, color: Colors.white),
+          label: const Text(
+            'Become a Service Provider',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          onPressed: () => context.push(AppRouteNames.providerApplication),
+        ),
+      ],
     );
   }
 

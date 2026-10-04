@@ -39,6 +39,9 @@ class AppRouteNames {
   static const String providerAvailability = '/provider/availability';
   static const String providerProfileEdit = '/provider/profile';
 
+  // Provider Application (Customer flow)
+  static const String providerApplication = '/provider-application';
+
   // Admin
   static const String adminVerification = '/admin/verification';
   static const String adminReviews = '/admin/reviews';
@@ -101,7 +104,10 @@ final GoRouter appRouter = GoRouter(
           !(role == 'provider' &&
               providerStatus == 'approved' &&
               accountStatus == 'active') &&
-          (location.startsWith('/admin') || location.startsWith('/provider'))) {
+          (location.startsWith('/admin') ||
+              (location.startsWith('/provider') &&
+               location != AppRouteNames.providerApplication &&
+               location != AppRouteNames.providerProfile))) {
         return targetRoute;
       }
     }
@@ -195,7 +201,15 @@ final GoRouter appRouter = GoRouter(
     // 2a. Customer Dashboard (Role-based entry point)
     GoRoute(
       path: AppRouteNames.customerDashboard,
-      builder: (context, state) => const CustomerDashboardScreen(),
+      builder: (context, state) => CustomerDashboardScreen(
+        onNotificationTap: () => context.push(AppRouteNames.notifications),
+        onEmergencyBookingTap: () => context.push(AppRouteNames.emergencyBooking),
+        onFilterTap: () => context.push(AppRouteNames.filter),
+        onProviderTap: (providerId) => context.push(
+          AppRouteNames.providerProfile,
+          extra: providerId,
+        ),
+      ),
     ),
 
     // 2b. Provider Dashboard (Role-based entry point)
@@ -347,6 +361,10 @@ final GoRouter appRouter = GoRouter(
         return BookingTrackingScreen(
           bookingId: bookingId,
           onBack: () => context.go(AppRouteNames.home),
+          onReviewSelected: (data) => context.push(
+            AppRouteNames.ratingReview,
+            extra: data,
+          ),
         );
       },
     ),
@@ -444,6 +462,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.providerProfileEdit,
       builder: (context, state) => const ProviderProfileScreen(),
+    ),
+
+    // Provider Application Form (Customer → becomes provider)
+    GoRoute(
+      path: AppRouteNames.providerApplication,
+      builder: (context, state) => ProviderApplicationScreen(
+        onBack: () => context.pop(),
+        onSubmitSuccess: () => context.pop(),
+      ),
     ),
 
     // 15. Admin â€” Provider Verification
