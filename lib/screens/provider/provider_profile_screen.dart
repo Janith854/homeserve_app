@@ -35,6 +35,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
   final _imageUrl = TextEditingController();
   bool _loaded = false;
   bool _saving = false;
+  bool _isEditing = false;
 
   @override
   void dispose() {
@@ -105,7 +106,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                 child: Column(
                   children: [
                     GestureDetector(
-                      onTap: _pickImage,
+                      onTap: _isEditing ? _pickImage : null,
                       child: Stack(
                         alignment: Alignment.bottomRight,
                         children: [
@@ -120,7 +121,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                                       Icon(Icons.add_a_photo_outlined, size: 28, color: AppColors.primary),
                                       SizedBox(height: 4),
                                       Text(
-                                        'Upload Photo',
+                                        'No Photo',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 11,
@@ -132,41 +133,44 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                                   )
                                 : null,
                           ),
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
+                          if (_isEditing)
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.edit, size: 16, color: Colors.white),
                             ),
-                            child: const Icon(Icons.edit, size: 16, color: Colors.white),
-                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 6),
-                    if (hasImage)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: _pickImage,
-                            child: const Text('Change Photo', style: TextStyle(fontWeight: FontWeight.w600)),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _imageUrl.text = '';
-                              });
-                            },
-                            child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
-                          ),
-                        ],
-                      )
-                    else
-                      TextButton(
-                        onPressed: _pickImage,
-                        child: const Text('Upload Photo', style: TextStyle(fontWeight: FontWeight.w600)),
-                      ),
+                    if (_isEditing) ...[
+                      if (hasImage)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: _pickImage,
+                              child: const Text('Change Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _imageUrl.text = '';
+                                });
+                              },
+                              child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
+                            ),
+                          ],
+                        )
+                      else
+                        TextButton(
+                          onPressed: _pickImage,
+                          child: const Text('Upload Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                    ],
                   ],
                 ),
               ),
@@ -179,10 +183,17 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
               _field(_areas, 'Available areas (comma separated)'),
               _field(_price, 'Price / Rate'),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: Text(_saving ? 'Saving...' : 'Save profile'),
-              ),
+              if (_isEditing)
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: Text(_saving ? 'Saving...' : 'Save profile'),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: () => setState(() => _isEditing = true),
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit Profile'),
+                ),
               const SizedBox(height: 16),
               const Text('Role, verification status, and account status are managed by administrators.'),
               const SizedBox(height: 24),
@@ -214,7 +225,13 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        readOnly: !_isEditing,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          filled: !_isEditing,
+          fillColor: _isEditing ? null : AppColors.surface,
+        ),
       ),
     );
   }
@@ -249,7 +266,10 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
         price: _price.text,
         profileImageUrl: _imageUrl.text,
       );
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved.')));
+        setState(() => _isEditing = false);
+      }
     } catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save profile: $error')));
     } finally {

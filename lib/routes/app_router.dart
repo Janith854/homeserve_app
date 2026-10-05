@@ -360,7 +360,13 @@ final GoRouter appRouter = GoRouter(
         }
         return BookingTrackingScreen(
           bookingId: bookingId,
-          onBack: () => context.go(AppRouteNames.home),
+          onBack: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRouteNames.customerDashboard);
+            }
+          },
           onReviewSelected: (data) => context.push(
             AppRouteNames.ratingReview,
             extra: data,
@@ -422,8 +428,8 @@ final GoRouter appRouter = GoRouter(
           bookingId: data['bookingId'] as String? ?? '',
           providerId: data['providerId'] as String? ?? '',
           providerName: data['providerName'] as String? ?? 'Provider',
-          onSubmitReview: () => context.go(AppRouteNames.home),
-          onSkip: () => context.go(AppRouteNames.home),
+          onSubmitReview: () => context.go(AppRouteNames.customerDashboard),
+          onSkip: () => context.go(AppRouteNames.customerDashboard),
         );
       },
     ),

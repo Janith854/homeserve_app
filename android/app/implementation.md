@@ -1,20 +1,38 @@
-Fix the Admin Provider Verification error.
+Fix the Customer Booking navigation and tracking flow.
 
-Current error:
-FAILED_PRECONDITION: The query requires an index.
+Current problem:
+After the customer confirms a booking and opens Booking Status, pressing Back returns to Home, but the Customer bottom navigation is missing.
 
-Admin → Provider Verification cannot display pending Become a Service Provider applications.
+Required flow:
 
-Please:
-1. Inspect the Provider Verification Firestore query.
-2. Identify the exact fields used in the `where` and `orderBy` query.
-3. Create/add the required Firestore composite index using the existing Firebase project.
-4. Do NOT remove the query or disable sorting/filtering just to bypass the error.
-5. Make sure pending provider applications appear correctly in Admin → Provider Verification.
-6. Keep the existing UI unchanged.
-7. Do not change unrelated features.
+Booking Confirmation
+→ Back / Home
+→ Customer Home with normal bottom navigation
 
-After fixing:
-- Run flutter analyze.
-- Test Admin → Provider Verification.
-- Verify the existing pending Plumbing provider application appears.
+Bottom navigation must show:
+Home | Bookings | Notifications | Profile
+
+Bookings tab:
+→ Show the customer's existing Firestore bookings
+→ Show booking details such as service, provider, date, time and status
+→ Tapping a booking must open its Booking Status / Tracking screen
+
+Booking Status:
+Pending → Confirmed → In Progress → Completed
+
+Important:
+- The confirmed booking must remain saved in Firestore.
+- Customer must be able to return to the same booking and track its status anytime from the Bookings tab.
+- Provider status changes must update the customer's booking status.
+- Do not create duplicate bookings.
+- Do not use fake/sample booking data.
+- Keep the existing UI/design.
+- Fix only the navigation and booking tracking flow.
+- Do not break the existing Customer, Provider or Admin flows.
+
+After implementation:
+1. Run flutter analyze.
+2. Fix any errors.
+3. Test on the Android phone:
+   Confirm Booking → Back/Home → Bookings → Select Booking → Booking Status.
+4. Verify the bottom navigation is always visible on Customer Home.

@@ -124,7 +124,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                   return Card(
                     child: ListTile(
                       title: Text(data['serviceName']?.toString() ?? 'Service'),
-                      subtitle: Text('${data['date'] ?? ''} · ${data['time'] ?? ''}'),
+                      subtitle: Text('${data['providerName'] ?? 'Provider'}\n${data['date'] ?? ''} · ${data['time'] ?? ''}'),
+                      isThreeLine: true,
                       trailing: Text(data['status']?.toString() ?? 'pending'),
                       onTap: () => context.push(AppRouteNames.bookingTracking, extra: doc.id),
                     ),
