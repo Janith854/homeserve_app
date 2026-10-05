@@ -29,8 +29,6 @@ class PriceEstimateScreen extends StatelessWidget {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           if (!snapshot.data!.exists) return const Center(child: Text('Provider not found.'));
           final provider = ProviderModel.fromDoc(snapshot.data!);
-          final callOutFee = (provider.availability?['callOutFee'] as num?)?.toDouble() ?? 0;
-          final serviceCharge = (provider.availability?['serviceCharge'] as num?)?.toDouble() ?? 0;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -43,15 +41,19 @@ class PriceEstimateScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               const Text('Cost Breakdown', style: TextStyle(fontWeight: FontWeight.bold)),
-              if (provider.price.isNotEmpty)
+              if (provider.formattedPrice.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Provider Rate: ${provider.price}'),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Provider Rate'),
+                      Text(provider.formattedPrice, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-              _row('Service Charge', serviceCharge),
-              _row('Call-out Fee', callOutFee),
               const Divider(),
-              _row('Estimated Total', serviceCharge + callOutFee, bold: true),
+              _row('Estimated Total', provider.parsedPrice, bold: true),
               const SizedBox(height: 16),
               const Text('Final price may vary based on job scope.', textAlign: TextAlign.center),
               const SizedBox(height: 24),

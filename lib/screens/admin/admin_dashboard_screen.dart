@@ -13,6 +13,9 @@ import 'package:homeserve_app/services/admin_user_service.dart';
 import 'package:homeserve_app/screens/admin/admin_verification_screen.dart';
 import 'package:homeserve_app/screens/admin/admin_reviews_screen.dart';
 
+import 'package:homeserve_app/screens/notifications/notifications_screen.dart';
+import 'package:homeserve_app/services/notification_service.dart';
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -40,28 +43,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textLight,
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.verified_user_outlined),
             activeIcon: Icon(Icons.verified_user),
             label: 'Verify',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.people_outline),
             activeIcon: Icon(Icons.people),
             label: 'Customers',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.engineering_outlined),
             activeIcon: Icon(Icons.engineering),
             label: 'Providers',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.star_outline),
             activeIcon: Icon(Icons.star),
             label: 'Reviews',
           ),
           BottomNavigationBarItem(
+            icon: _buildNotificationIcon(Icons.notifications_none_outlined),
+            activeIcon: _buildNotificationIcon(Icons.notifications),
+            label: 'Notifications',
+          ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
@@ -99,9 +107,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           },
         ),
 
-        // 4. Admin Profile
+        // 4. Notifications
+        const NotificationsScreen(),
+
+        // 5. Admin Profile
         _buildProfileTab(),
       ],
+    );
+  }
+
+  Widget _buildNotificationIcon(IconData icon) {
+    return StreamBuilder<int>(
+      stream: NotificationService.instance.watchUnreadCount(),
+      builder: (context, snapshot) {
+        final unread = snapshot.data ?? 0;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon),
+            if (unread > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Center(
+                    child: Text(
+                      unread > 9 ? '9+' : '$unread',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

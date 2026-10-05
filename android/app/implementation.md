@@ -1,38 +1,61 @@
-Fix the Customer Booking navigation and tracking flow.
+Update the HomeServe branding screens using the existing logo asset:
 
-Current problem:
-After the customer confirms a booking and opens Booking Status, pressing Back returns to Home, but the Customer bottom navigation is missing.
+assets/images/homeserve_logo.png
+
+I already placed the logo in the assets/images folder. Do not create another logo or replace this asset.
+
+I want the app branding to match the provided sample image.
 
 Required flow:
 
-Booking Confirmation
-→ Back / Home
-→ Customer Home with normal bottom navigation
+Onboarding Screen 3
+→ Splash Screen
+→ Login / Sign Up
 
-Bottom navigation must show:
-Home | Bookings | Notifications | Profile
+SPLASH SCREEN:
+- Show the same HomeServe logo from `assets/images/homeserve_logo.png`
+- Center the logo on the screen
+- White background
+- Show the tagline below the logo:
+  "Trusted help, right at home"
+- Clean, simple, professional appearance
+- Logo should be clearly visible and properly sized
+- Keep the splash screen short, then navigate automatically to Login
+- Do not add unnecessary animations or UI elements
 
-Bookings tab:
-→ Show the customer's existing Firestore bookings
-→ Show booking details such as service, provider, date, time and status
-→ Tapping a booking must open its Booking Status / Tracking screen
+LOGIN SCREEN:
+- Show the exact same `assets/images/homeserve_logo.png` at the top
+- Match the sample layout as closely as possible
+- Keep the existing Login functionality unchanged
 
-Booking Status:
-Pending → Confirmed → In Progress → Completed
+SIGN UP SCREEN:
+- Show the exact same HomeServe logo at the top
+- Use the same logo asset
+- Keep the existing Sign Up functionality unchanged
 
-Important:
-- The confirmed booking must remain saved in Firestore.
-- Customer must be able to return to the same booking and track its status anytime from the Bookings tab.
-- Provider status changes must update the customer's booking status.
-- Do not create duplicate bookings.
-- Do not use fake/sample booking data.
-- Keep the existing UI/design.
-- Fix only the navigation and booking tracking flow.
-- Do not break the existing Customer, Provider or Admin flows.
+IMPORTANT:
+- Use ONE logo asset everywhere:
+  `assets/images/homeserve_logo.png`
+- Do not recreate the logo using Flutter widgets/text.
+- Do not create another logo file.
+- Do not change the logo colors, shape, or design.
+- Keep the existing HomeServe colors and UI style.
+- Do not change existing app functionality or navigation except adding the Splash Screen after Onboarding.
+- Make sure the asset is correctly declared in `pubspec.yaml`.
 
-After implementation:
-1. Run flutter analyze.
-2. Fix any errors.
-3. Test on the Android phone:
-   Confirm Booking → Back/Home → Bookings → Select Booking → Booking Status.
-4. Verify the bottom navigation is always visible on Customer Home.
+Final flow should be:
+
+Onboarding 1
+→ Onboarding 2
+→ Onboarding 3
+→ HomeServe Splash Screen
+→ Login
+
+Test:
+1. Run `flutter pub get`
+2. Run `flutter analyze`
+3. Run the app on the Android phone.
+4. Verify the logo is visible correctly on Splash, Login, and Sign Up.
+5. Verify the navigation works correctly.
+
+If there are any errors, fix them and test again.

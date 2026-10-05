@@ -441,13 +441,14 @@ class _ProviderApplicationScreenState
               const SizedBox(height: 16),
 
               // Price
-              _buildFieldLabel('Price / Rate *'),
+              _buildFieldLabel('Price (Rs.) *'),
               _buildTextField(
                 controller: _priceController,
-                hint: 'e.g. \$50/hr or \$100 flat',
-                icon: Icons.attach_money_outlined,
+                hint: 'e.g. 2500',
+                keyboardType: TextInputType.number,
+                icon: Icons.payments_outlined,
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Price/Rate is required' : null,
+                    (v == null || v.trim().isEmpty) ? 'Price is required' : null,
               ),
               const SizedBox(height: 28),
 

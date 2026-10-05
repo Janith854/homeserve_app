@@ -1,87 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 
-/// Status badge types matching various CSS classes.
-enum StatusBadgeType {
-  verified,   // .badge-verified
-  highSev,    // .sevtag.high
-  medSev,     // .sevtag.med
-  lowSev,     // .sevtag.low
-}
-
-/// Matches CSS `.badge-verified` and `.sevtag.*` — status pills.
 class StatusBadge extends StatelessWidget {
-  final String label;
-  final StatusBadgeType type;
-  final IconData? icon;
+  final String status;
 
-  const StatusBadge({
-    super.key,
-    required this.label,
-    this.type = StatusBadgeType.verified,
-    this.icon,
-  });
-
-  const StatusBadge.verified({
-    super.key,
-    this.label = 'Verified Provider',
-    this.type = StatusBadgeType.verified,
-    this.icon = Icons.verified_user_rounded,
-  });
+  const StatusBadge({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
     Color bgColor;
     Color textColor;
-    double radius;
-    EdgeInsets padding;
-    TextStyle textStyle;
+    IconData icon;
+    String label = status.toUpperCase();
 
-    switch (type) {
-      case StatusBadgeType.verified:
-        bgColor = AppColors.primaryLight;
-        textColor = AppColors.primaryDark;
-        radius = AppRadius.pill;
-        padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
-        textStyle = AppTextStyles.badgeVerified;
-        break;
-      case StatusBadgeType.highSev:
-        bgColor = AppColors.warningBannerBg;
-        textColor = AppColors.warningBannerText;
-        radius = AppRadius.severityTag;
-        padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 3);
-        textStyle = AppTextStyles.severityTag;
-        break;
-      case StatusBadgeType.medSev:
-        bgColor = AppColors.severityMedBg;
-        textColor = AppColors.severityMedText;
-        radius = AppRadius.severityTag;
-        padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 3);
-        textStyle = AppTextStyles.severityTag;
-        break;
-      case StatusBadgeType.lowSev:
-        bgColor = AppColors.primaryLight;
-        textColor = AppColors.primaryDark;
-        radius = AppRadius.severityTag;
-        padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 3);
-        textStyle = AppTextStyles.severityTag;
-        break;
+    final s = status.toLowerCase().trim();
+
+    if (s == 'pending') {
+      bgColor = AppColors.warningBannerBg;
+      textColor = const Color(0xFFC9860F); // Amber text
+      icon = Icons.access_time_rounded;
+      label = 'Pending';
+    } else if (s == 'confirmed' || s == 'approved') {
+      bgColor = const Color(0xFFE3F2FD); // Light Blue
+      textColor = const Color(0xFF1976D2); // Blue
+      icon = Icons.check_circle_outline_rounded;
+      label = s == 'confirmed' ? 'Confirmed' : 'Approved';
+    } else if (s == 'in_progress' || s == 'in progress') {
+      bgColor = const Color(0xFFF3E5F5); // Light Purple
+      textColor = const Color(0xFF7B1FA2); // Purple
+      icon = Icons.sync_rounded;
+      label = 'In Progress';
+    } else if (s == 'completed' || s == 'success') {
+      bgColor = const Color(0xFFE8F5E9); // Light Green
+      textColor = const Color(0xFF388E3C); // Green
+      icon = Icons.check_circle_rounded;
+      label = s == 'completed' ? 'Completed' : 'Success';
+    } else if (s == 'rejected' || s == 'cancelled' || s == 'canceled') {
+      bgColor = AppColors.warningBannerBg; // Light red/pinkish
+      textColor = AppColors.danger; // Red
+      icon = Icons.cancel_rounded;
+      label = s == 'rejected' ? 'Rejected' : 'Cancelled';
+    } else if (s == 'failed' || s == 'error') {
+      bgColor = const Color(0xFFFFEBEE);
+      textColor = const Color(0xFFD32F2F); // Dark Red
+      icon = Icons.error_rounded;
+      label = s == 'failed' ? 'Failed' : 'Error';
+    } else if (s == 'verified') {
+      bgColor = AppColors.primaryLight;
+      textColor = AppColors.primaryDark;
+      icon = Icons.verified_user_rounded;
+      label = 'Verified Provider';
+    } else {
+      // Information / Default
+      bgColor = const Color(0xFFE1F5FE);
+      textColor = const Color(0xFF0288D1);
+      icon = Icons.info_outline_rounded;
+      label = status.isNotEmpty ? status : 'Unknown';
     }
 
     return Container(
-      padding: padding,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: AppIconSize.badgeVerified, color: textColor),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          Text(label, style: textStyle.copyWith(color: textColor)),
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
         ],
       ),
     );

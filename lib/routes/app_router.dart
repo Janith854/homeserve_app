@@ -11,6 +11,7 @@ class AppRouteNames {
   static const String onboarding1 = '/onboarding-1';
   static const String onboarding2 = '/onboarding-2';
   static const String onboarding3 = '/onboarding-3';
+  static const String splash = '/splash';
 
   // Auth
   static const String login = '/login';
@@ -137,9 +138,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.onboarding3,
       builder: (context, state) => Onboarding3Screen(
-        onGetStarted: () => context.go(AppRouteNames.login),
-        onSkip: () => context.go(AppRouteNames.login),
+        onGetStarted: () => context.push(AppRouteNames.splash),
+        onSkip: () => context.push(AppRouteNames.splash),
       ),
+    ),
+
+    // 0d. Splash Screen
+    GoRoute(
+      path: AppRouteNames.splash,
+      builder: (context, state) => const SplashScreen(),
     ),
 
     // 1. Login
@@ -270,6 +277,10 @@ final GoRouter appRouter = GoRouter(
             AppRouteNames.priceEstimate,
             extra: providerId,
           ),
+          onViewBooking: (bookingId) => context.push(
+            AppRouteNames.bookingTracking,
+            extra: bookingId,
+          ),
           onBack: () => context.pop(),
         );
       },
@@ -293,8 +304,7 @@ final GoRouter appRouter = GoRouter(
               'providerId': provider.id,
               'serviceId': provider.id,
               'serviceName': provider.serviceType,
-              'price': ((provider.availability?['serviceCharge'] as num?)?.toDouble() ?? 0.0) +
-                  ((provider.availability?['callOutFee'] as num?)?.toDouble() ?? 0.0),
+              'price': provider.parsedPrice,
             },
           ),
           onBack: () => context.pop(),
@@ -370,6 +380,10 @@ final GoRouter appRouter = GoRouter(
           onReviewSelected: (data) => context.push(
             AppRouteNames.ratingReview,
             extra: data,
+          ),
+          onBookAgain: (providerId) => context.push(
+            AppRouteNames.providerProfile,
+            extra: providerId,
           ),
         );
       },

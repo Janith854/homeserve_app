@@ -86,6 +86,8 @@ class ProviderVerificationService {
             'experience': application.experience,
             'description': application.description,
             'availableAreas': application.availableAreas,
+            'price': application.price,
+            'profileImageUrl': application.profileImageUrl,
             'rating': 0.0,
             'reviewCount': 0,
             'verificationStatus': 'approved',

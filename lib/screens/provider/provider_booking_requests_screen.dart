@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/services/provider_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
+import 'package:homeserve_app/widgets/widgets.dart';
 
 class ProviderBookingRequestsScreen extends StatelessWidget {
   final ValueChanged<int>? onProviderNavTap;
@@ -76,7 +77,13 @@ class _BookingCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(customer, style: Theme.of(context).textTheme.titleMedium),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(customer, style: Theme.of(context).textTheme.titleMedium),
+              StatusBadge(status: status),
+            ],
+          ),
           const SizedBox(height: 6),
           Row(children: [
             Expanded(child: Text(service)),
@@ -87,9 +94,10 @@ class _BookingCard extends StatelessWidget {
                 labelStyle: TextStyle(color: Colors.white),
               ),
           ]),
-          if (date.isNotEmpty) Text(date, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 12),
-          Text('Status: $status'),
+          if (date.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(date, style: Theme.of(context).textTheme.bodySmall),
+          ],
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -97,7 +105,7 @@ class _BookingCard extends StatelessWidget {
               if (status == 'pending')
                 FilledButton(
                   onPressed: () => ProviderService.instance
-                      .updateBookingStatus(document.id, 'accepted'),
+                      .updateBookingStatus(document.id, 'confirmed'),
                   child: const Text('Accept'),
                 ),
               if (status == 'pending')
@@ -106,13 +114,13 @@ class _BookingCard extends StatelessWidget {
                       .updateBookingStatus(document.id, 'rejected'),
                   child: const Text('Reject'),
                 ),
-              if (status == 'accepted' || status == 'confirmed')
+              if (status == 'confirmed')
                 OutlinedButton(
                   onPressed: () => ProviderService.instance
                       .updateBookingStatus(document.id, 'in_progress'),
                   child: const Text('Start job'),
                 ),
-              if (status == 'in_progress')
+              if (status == 'in_progress' || status == 'in progress')
                 FilledButton(
                   onPressed: () => ProviderService.instance
                       .updateBookingStatus(document.id, 'completed'),

@@ -30,16 +30,35 @@ class Onboarding3Screen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Top Bar with Skip
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: onSkip ?? () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.text,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(40, 36),
+                  ),
+                  child: Text(
+                    'Skip',
+                    style: AppTextStyles.meta.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
               // Illustration Box
               Container(
-                height: 190,
+                height: 250,
                 decoration: BoxDecoration(
-                  color: AppColors.onboard3Bg,
-                  borderRadius: BorderRadius.circular(AppRadius.onboardPhoto),
+                  color: Colors.transparent,
                 ),
                 child: Center(
                   child: CustomPaint(
-                    size: const Size(200, 140),
+                    size: const Size(200, 180),
                     painter: _Onboarding3IllustrationPainter(),
                   ),
                 ),
@@ -48,55 +67,42 @@ class Onboarding3Screen extends StatelessWidget {
 
               // Title
               Text(
-                'Track Bookings Real-Time',
-                style: AppTextStyles.onboardTitle,
-                textAlign: TextAlign.center,
+                'Your Home\nOur Priority',
+                style: AppTextStyles.h1.copyWith(
+                  color: AppColors.primaryDark,
+                  fontSize: 28,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Subtitle
+              Text(
+                'Reliable. Fast. Professional.\nThat\'s HomeServe.',
+                style: AppTextStyles.meta.copyWith(
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              
+              const Spacer(),
+
+              // Pagination Dots
+              const Center(
+                child: PaginationDots(total: 3, current: 2),
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Subtitle
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                child: Text(
-                  'Monitor status progression live, with clear updates from booking to dispatch to your front door.',
-                  style: AppTextStyles.onboardSub,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.x4l),
-
-              // Pagination Dots
-              const PaginationDots(total: 3, current: 2),
-
-              const Spacer(),
-
               // Bottom Navigation Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: onSkip ?? () {
-                      // TODO: Firebase / Navigation to Login
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(40, 36),
-                    ),
-                    child: Text(
-                      'Skip',
-                      style: AppTextStyles.link,
-                    ),
-                  ),
-                  PrimaryButton(
-                    label: 'Get Started',
-                    isSmall: true,
-                    onPressed: onGetStarted ?? () {
-                      // TODO: Navigate to Login / Sign Up
-                    },
-                  ),
-                ],
+              PrimaryButton(
+                label: 'Get Started',
+                icon: Icons.arrow_forward,
+                isSmall: false,
+                onPressed: onGetStarted ?? () {},
               ),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
         ),

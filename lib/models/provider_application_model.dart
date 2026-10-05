@@ -12,6 +12,8 @@ class ProviderApplicationModel {
   final String experience;
   final String description;
   final List<String> availableAreas;
+  final String price;
+  final String profileImageUrl;
   final String status; // "pending", "approved", "rejected"
   final DateTime submittedAt;
   final String? reviewedBy;
@@ -27,6 +29,8 @@ class ProviderApplicationModel {
     required this.experience,
     required this.description,
     required this.availableAreas,
+    this.price = '',
+    this.profileImageUrl = '',
     required this.status,
     required this.submittedAt,
     this.reviewedBy,
@@ -45,6 +49,8 @@ class ProviderApplicationModel {
       experience: data['experience'] ?? '',
       description: data['description'] ?? '',
       availableAreas: List<String>.from(data['availableAreas'] ?? []),
+      price: data['price']?.toString() ?? '',
+      profileImageUrl: data['profileImageUrl']?.toString() ?? '',
       status: data['status'] ?? 'pending',
       submittedAt: (data['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       reviewedBy: data['reviewedBy'] as String?,
@@ -62,6 +68,8 @@ class ProviderApplicationModel {
       'experience': experience,
       'description': description,
       'availableAreas': availableAreas,
+      'price': price,
+      'profileImageUrl': profileImageUrl,
       'status': status,
       'submittedAt': FieldValue.serverTimestamp(),
       'reviewedBy': reviewedBy,

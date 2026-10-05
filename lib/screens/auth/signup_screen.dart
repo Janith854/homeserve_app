@@ -129,6 +129,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 title: 'Create Account',
                 onLeadingPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
               ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Brand Logo
+              Center(
+                child: Image.asset(
+                  'assets/images/homeserve_logo.jpg',
+                  width: 200,
+                  fit: BoxFit.contain,
+                ),
+              ),
               const SizedBox(height: AppSpacing.xxl),
 
               // Inline Error Banner

@@ -181,7 +181,7 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
               _field(_experience, 'Experience'),
               _field(_description, 'Description', maxLines: 4),
               _field(_areas, 'Available areas (comma separated)'),
-              _field(_price, 'Price / Rate'),
+              _field(_price, 'Price (Rs.)', keyboardType: TextInputType.number),
               const SizedBox(height: 12),
               if (_isEditing)
                 FilledButton(

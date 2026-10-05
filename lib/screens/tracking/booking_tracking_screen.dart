@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:homeserve_app/screens/booking/complaint_form_screen.dart';
 import 'package:homeserve_app/services/booking_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
+import 'package:homeserve_app/widgets/widgets.dart';
 
 class BookingTrackingScreen extends StatelessWidget {
   final String bookingId;
   final VoidCallback? onBack;
   final ValueChanged<Map<String, dynamic>>? onReviewSelected;
+  final ValueChanged<String>? onBookAgain;
 
   const BookingTrackingScreen({
     super.key,
     required this.bookingId,
     this.onBack,
     this.onReviewSelected,
+    this.onBookAgain,
   });
 
   @override
@@ -42,7 +46,7 @@ class BookingTrackingScreen extends StatelessWidget {
                 child: ListTile(
                   title: Text(data['serviceName']?.toString() ?? 'Service'),
                   subtitle: Text('${data['date'] ?? ''} · ${data['time'] ?? ''}\n${data['address'] ?? ''}'),
-                  trailing: Text(status),
+                  trailing: StatusBadge(status: status),
                 ),
               ),
               const SizedBox(height: 20),
@@ -69,7 +73,7 @@ class BookingTrackingScreen extends StatelessWidget {
                   },
                   child: const Text('Cancel Booking'),
                 ),
-              if (status == 'completed')
+              if (status == 'completed') ...[
                 FilledButton(
                   onPressed: () {
                     onReviewSelected?.call({
@@ -78,8 +82,36 @@ class BookingTrackingScreen extends StatelessWidget {
                       'providerName': data['providerName']?.toString() ?? 'Provider',
                     });
                   },
-                  child: const Text('Rate and Review'),
+                  child: const Text('⭐  Rate & Review'),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.flag_outlined, color: Colors.red),
+                  label: const Text('Report a Problem', style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                  onPressed: () {
+                    final providerId = data['providerId']?.toString() ?? '';
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ComplaintFormScreen(
+                          bookingId: bookingId,
+                          providerId: providerId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () {
+                    final pId = data['providerId']?.toString() ?? '';
+                    if (pId.isNotEmpty) {
+                      onBookAgain?.call(pId);
+                    }
+                  },
+                  child: const Text('Book Again'),
+                ),
+              ],
             ],
           );
         },

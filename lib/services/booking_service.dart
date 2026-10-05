@@ -126,6 +126,18 @@ class BookingService {
         .snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchBookingsForProvider(String providerId) {
+    final customerId = _auth.currentUser?.uid;
+    if (customerId == null) {
+      throw StateError('You must be signed in to view bookings.');
+    }
+    return _db
+        .collection('bookings')
+        .where('customerId', isEqualTo: customerId)
+        .where('providerId', isEqualTo: providerId)
+        .snapshots();
+  }
+
   Future<void> cancelBooking(String bookingId) async {
     final customerId = _auth.currentUser?.uid;
     if (customerId == null) throw StateError('You must be signed in.');
@@ -158,5 +170,57 @@ class BookingService {
         relatedId: bookingId,
       );
     }
+  }
+
+  Future<void> updateBookingStatus(String bookingId, String newStatus) async {
+    final booking = await _db.collection('bookings').doc(bookingId).get();
+    final data = booking.data();
+    if (data == null) return;
+
+    await booking.reference.update({
+      'status': newStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    final customerId = data['customerId']?.toString();
+    if (customerId == null || customerId.isEmpty) return;
+
+    String title = '';
+    String message = '';
+    String type = '';
+
+    switch (newStatus.toLowerCase()) {
+      case 'confirmed':
+        title = 'Booking Confirmed';
+        message = 'Your booking has been accepted by the provider.';
+        type = 'booking_confirmed';
+        break;
+      case 'in_progress':
+      case 'in progress':
+        title = 'Service Started';
+        message = 'Your service is now in progress.';
+        type = 'service_started';
+        break;
+      case 'completed':
+        title = 'Service Completed';
+        message = 'Your service has been completed.';
+        type = 'service_completed';
+        break;
+      case 'rejected':
+        title = 'Booking Rejected';
+        message = 'Your booking request was rejected.';
+        type = 'booking_rejected';
+        break;
+      default:
+        return; // No notification for other generic updates
+    }
+
+    await NotificationService.instance.create(
+      userId: customerId,
+      title: title,
+      message: message,
+      type: type,
+      relatedId: bookingId,
+    );
   }
 }

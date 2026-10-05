@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:homeserve_app/screens/booking/complaint_form_screen.dart';
 import 'package:homeserve_app/services/booking_service.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 
@@ -68,13 +69,31 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                               title: Text(data['serviceName']?.toString() ?? 'Service'),
                               subtitle: Text('${data['date'] ?? ''} · ${data['time'] ?? ''}\n${data['address'] ?? ''}'),
                               trailing: _tab == 1
-                                  ? IconButton(
-                                      icon: const Icon(Icons.star),
-                                      onPressed: () => widget.onReviewSelected?.call({
-                                        'bookingId': doc.id,
-                                        'providerId': data['providerId']?.toString() ?? '',
-                                        'providerName': data['providerName']?.toString() ?? 'Provider',
-                                      }),
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.star, color: Colors.amber),
+                                          tooltip: 'Leave a Review',
+                                          onPressed: () => widget.onReviewSelected?.call({
+                                            'bookingId': doc.id,
+                                            'providerId': data['providerId']?.toString() ?? '',
+                                            'providerName': data['providerName']?.toString() ?? 'Provider',
+                                          }),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.flag_outlined, color: Colors.red),
+                                          tooltip: 'Report a Problem',
+                                          onPressed: () => Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => ComplaintFormScreen(
+                                                bookingId: doc.id,
+                                                providerId: data['providerId']?.toString() ?? '',
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     )
                                   : Text(data['status']?.toString() ?? 'pending'),
                               onTap: () => widget.onBookingSelected?.call(doc.id),

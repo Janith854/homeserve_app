@@ -5,6 +5,7 @@ library;
 export 'onboarding/onboarding1_screen.dart';
 export 'onboarding/onboarding2_screen.dart';
 export 'onboarding/onboarding3_screen.dart';
+export 'onboarding/splash_screen.dart';
 export 'auth/login_screen.dart';
 export 'auth/signup_screen.dart';
 
@@ -27,6 +28,7 @@ export 'tracking/booking_tracking_screen.dart';
 export 'notifications/notifications_screen.dart';
 export 'booking/emergency_booking_screen.dart';
 export 'booking/service_history_screen.dart';
+export 'booking/complaint_form_screen.dart';
 
 // Review & Provider / Admin Tools
 export 'review/rating_review_screen.dart';

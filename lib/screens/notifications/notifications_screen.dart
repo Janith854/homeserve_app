@@ -10,6 +10,49 @@ class NotificationsScreen extends StatelessWidget {
 
   const NotificationsScreen({super.key, this.onNotificationTap, this.onBack});
 
+  static DateTime _timestamp(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final value = doc.data()['createdAt'];
+    return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static String _formatDate(Object? value) {
+    if (value is! Timestamp) return 'Just now';
+    final date = value.toDate();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final targetDate = DateTime(date.year, date.month, date.day);
+    
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final min = date.minute.toString().padLeft(2, '0');
+    final ampm = date.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$min $ampm';
+
+    if (targetDate == today) {
+      return 'Today, $timeStr';
+    } else if (targetDate == yesterday) {
+      return 'Yesterday, $timeStr';
+    } else {
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final mStr = months[date.month - 1];
+      final dStr = date.day.toString().padLeft(2, '0');
+      return '$dStr $mStr ${date.year}, $timeStr';
+    }
+  }
+
+  static String _statusFromType(String? type) {
+    if (type == null) return 'unknown';
+    if (type == 'booking_created') return 'pending';
+    if (type == 'booking_confirmed') return 'confirmed';
+    if (type == 'service_started') return 'in_progress';
+    if (type == 'service_completed' || type == 'booking_completed') return 'completed';
+    if (type == 'booking_rejected') return 'rejected';
+    if (type == 'booking_cancelled') return 'cancelled';
+    if (type == 'review_reminder') return 'information';
+    if (type == 'provider_application') return 'verified';
+    return 'information';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,27 +83,84 @@ class NotificationsScreen extends StatelessWidget {
                   child: notifications.isEmpty
                       ? const Center(child: Text('No notifications yet.'))
                       : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl + 2),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           itemCount: notifications.length,
-                          separatorBuilder: (_, _) => const Divider(color: AppColors.border),
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final doc = notifications[index];
                             final data = doc.data();
                             final unread = data['isRead'] != true;
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                              leading: CircleAvatar(
-                                backgroundColor: unread ? AppColors.primaryLight : AppColors.surface,
-                                child: Icon(_iconFor(data['type']?.toString()), color: AppColors.primaryDark),
-                              ),
-                              title: Text(data['title']?.toString() ?? 'Notification', style: unread ? AppTextStyles.notifTitle.copyWith(fontWeight: FontWeight.bold) : AppTextStyles.notifTitle),
-                              subtitle: Text(data['message']?.toString() ?? '', style: AppTextStyles.notifSub),
-                              trailing: Text(_relativeTime(data['createdAt']), style: AppTextStyles.notifTime),
+                            final statusStr = _statusFromType(data['type']?.toString());
+                            
+                            return InkWell(
                               onTap: () async {
                                 if (unread) await NotificationService.instance.markAsRead(doc.id);
                                 final relatedId = data['relatedId']?.toString();
                                 if (relatedId != null && relatedId.isNotEmpty) onNotificationTap?.call(relatedId);
                               },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: unread ? const Color(0xFFE0F2F1) : Colors.white, // Teal highlight for unread
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: unread ? const Color(0xFF0F6B5C) : AppColors.border, width: unread ? 1 : 0.5),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (unread)
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(top: 6, right: 8),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red, // Red unread badge
+                                          shape: BoxShape.circle,
+                                        ),
+                                      )
+                                    else
+                                      const SizedBox(width: 16), // space replacement
+                                      
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  data['title']?.toString() ?? 'Notification',
+                                                  style: AppTextStyles.notifTitle.copyWith(
+                                                    fontWeight: unread ? FontWeight.bold : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ),
+                                              StatusBadge(status: statusStr),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            data['message']?.toString() ?? '',
+                                            style: AppTextStyles.notifSub.copyWith(
+                                              color: unread ? Colors.black87 : Colors.black54,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            _formatDate(data['createdAt']),
+                                            style: AppTextStyles.notifTime.copyWith(
+                                              color: Colors.black45,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -71,27 +171,5 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static DateTime _timestamp(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final value = doc.data()['createdAt'];
-    return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  static String _relativeTime(Object? value) {
-    if (value is! Timestamp) return 'now';
-    final difference = DateTime.now().difference(value.toDate());
-    if (difference.inMinutes < 1) return 'now';
-    if (difference.inHours < 1) return '${difference.inMinutes}m';
-    if (difference.inDays < 1) return '${difference.inHours}h';
-    return '${difference.inDays}d';
-  }
-
-  static IconData _iconFor(String? type) {
-    if (type == 'review_reminder') return Icons.star_border_rounded;
-    if (type == 'booking_cancelled') return Icons.cancel_outlined;
-    if (type == 'booking_completed') return Icons.check_circle_outline;
-    if (type == 'provider_application') return Icons.verified_outlined;
-    return Icons.notifications_none;
   }
 }

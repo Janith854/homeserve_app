@@ -30,16 +30,35 @@ class Onboarding2Screen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Top Bar with Skip
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: onSkip ?? () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.text,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(40, 36),
+                  ),
+                  child: Text(
+                    'Skip',
+                    style: AppTextStyles.meta.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
               // Illustration Box
               Container(
-                height: 190,
+                height: 250,
                 decoration: BoxDecoration(
-                  color: AppColors.onboard2Bg,
-                  borderRadius: BorderRadius.circular(AppRadius.onboardPhoto),
+                  color: Colors.transparent,
                 ),
                 child: Center(
                   child: CustomPaint(
-                    size: const Size(200, 140),
+                    size: const Size(200, 180),
                     painter: _Onboarding2IllustrationPainter(),
                   ),
                 ),
@@ -48,56 +67,42 @@ class Onboarding2Screen extends StatelessWidget {
 
               // Title
               Text(
-                'Transparent Pricing & Dates',
-                style: AppTextStyles.onboardTitle,
-                textAlign: TextAlign.center,
+                'Book with\nConfidence',
+                style: AppTextStyles.h1.copyWith(
+                  color: AppColors.primaryDark,
+                  fontSize: 28,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Subtitle
+              Text(
+                'Easy booking, secure payments\nand reliable service.',
+                style: AppTextStyles.meta.copyWith(
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              
+              const Spacer(),
+
+              // Pagination Dots
+              const Center(
+                child: PaginationDots(total: 3, current: 1),
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Subtitle
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                child: Text(
-                  'Review clear upfront cost estimates and easily schedule your booking on your own timeline.',
-                  style: AppTextStyles.onboardSub,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.x4l),
-
-              // Pagination Dots
-              const PaginationDots(total: 3, current: 1),
-
-              const Spacer(),
-
               // Bottom Navigation Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: onSkip ?? () {
-                      // TODO: Firebase / Navigation to Login
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(40, 36),
-                    ),
-                    child: Text(
-                      'Skip',
-                      style: AppTextStyles.link,
-                    ),
-                  ),
-                  PrimaryButton(
-                    label: 'Next',
-                    isSmall: true,
-                    icon: Icons.arrow_forward,
-                    onPressed: onNext ?? () {
-                      // TODO: Navigate to Onboarding 3/3
-                    },
-                  ),
-                ],
+              PrimaryButton(
+                label: 'Next',
+                icon: Icons.arrow_forward,
+                isSmall: false,
+                onPressed: onNext ?? () {},
               ),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
         ),

@@ -48,7 +48,9 @@ class ReviewService {
         'reviewId': reviewRef.id,
         'bookingId': bookingId,
         'customerId': customerId,
+        'customerName': bookingData?['customerName'] ?? 'Customer',
         'providerId': providerId,
+        'providerName': bookingData?['providerName'] ?? 'Provider',
         'rating': rating,
         'comment': comment.trim(),
         'createdAt': FieldValue.serverTimestamp(),
@@ -60,6 +62,10 @@ class ReviewService {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     });
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchReviews() {
+    return _db.collection('reviews').orderBy('createdAt', descending: true).snapshots();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchComplaints() {
@@ -76,7 +82,6 @@ class ReviewService {
     if (customerId == null) throw StateError('You must be signed in to submit a complaint.');
     final reference = _db.collection('complaints').doc();
     await reference.set({
-      'complaintId': reference.id,
       'customerId': customerId,
       'providerId': providerId,
       'bookingId': bookingId,

@@ -11,6 +11,8 @@ import 'package:homeserve_app/services/notification_service.dart';
 import 'package:homeserve_app/services/booking_service.dart';
 import 'package:homeserve_app/services/provider_application_service.dart';
 import 'package:homeserve_app/screens/home/home_search_screen.dart';
+import 'package:homeserve_app/screens/notifications/notifications_screen.dart';
+import 'package:homeserve_app/widgets/widgets.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   final VoidCallback? onNotificationTap;
@@ -45,23 +47,23 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textLight,
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             activeIcon: Icon(Icons.calendar_today),
             label: 'Bookings',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none_outlined),
-            activeIcon: Icon(Icons.notifications),
+            icon: _buildNotificationIcon(Icons.notifications_none_outlined),
+            activeIcon: _buildNotificationIcon(Icons.notifications),
             label: 'Notifications',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
@@ -126,7 +128,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                       title: Text(data['serviceName']?.toString() ?? 'Service'),
                       subtitle: Text('${data['providerName'] ?? 'Provider'}\n${data['date'] ?? ''} · ${data['time'] ?? ''}'),
                       isThreeLine: true,
-                      trailing: Text(data['status']?.toString() ?? 'pending'),
+                      trailing: StatusBadge(status: data['status']?.toString() ?? 'pending'),
                       onTap: () => context.push(AppRouteNames.bookingTracking, extra: doc.id),
                     ),
                   );
@@ -139,51 +141,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   }
 
   Widget _buildNotificationsTab() {
-    return SafeArea(
-      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: NotificationService.instance.watchNotifications(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Could not load notifications: ${snapshot.error}'));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final items = [...snapshot.data!.docs]
-            ..sort((a, b) => _notificationDate(b).compareTo(_notificationDate(a)));
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Row(
-                children: [
-                  Expanded(child: Text('Notifications', style: Theme.of(context).textTheme.headlineMedium)),
-                  TextButton(
-                    onPressed: () => NotificationService.instance.markAllAsRead(snapshot.data!),
-                    child: const Text('Read all'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (items.isEmpty)
-                const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No notifications yet.')))
-              else
-                ...items.map((doc) {
-                  final data = doc.data();
-                  final unread = data['isRead'] != true;
-                  return Card(
-                    child: ListTile(
-                      title: Text(data['title']?.toString() ?? 'Notification', style: unread ? const TextStyle(fontWeight: FontWeight.bold) : null),
-                      subtitle: Text(data['message']?.toString() ?? ''),
-                      onTap: () => NotificationService.instance.markAsRead(doc.id),
-                    ),
-                  );
-                }),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  DateTime _notificationDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final value = doc.data()['createdAt'];
-    return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+    return const NotificationsScreen();
   }
 
   Widget _buildProfileTab() {
@@ -450,5 +408,40 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
   Future<void> logout() async {
     await authNotifier.logout();
+  }
+
+  Widget _buildNotificationIcon(IconData icon) {
+    return StreamBuilder<int>(
+      stream: NotificationService.instance.watchUnreadCount(),
+      builder: (context, snapshot) {
+        final unread = snapshot.data ?? 0;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon),
+            if (unread > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Center(
+                    child: Text(
+                      unread > 9 ? '9+' : '$unread',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }

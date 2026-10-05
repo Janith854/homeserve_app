@@ -111,5 +111,21 @@ class ProviderModel {
   String get location => availableAreas.isEmpty ? 'Service area not provided' : availableAreas.join(', ');
   String get photoUrl => profileImageUrl;
   bool get verified => verificationStatus == 'approved';
-  double get pricePerJob => 0; // Keeping this for backward compatibility if needed, but it might be unused.
+  
+  String get formattedPrice {
+    if (price.trim().isEmpty) return '';
+    final parsed = double.tryParse(price.replaceAll(RegExp(r'[^0-9.]'), ''));
+    if (parsed != null) {
+      final formatted = parsed.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+      return 'Rs. $formatted';
+    }
+    return 'Rs. $price';
+  }
+  
+  double get parsedPrice {
+    if (price.trim().isEmpty) return 0.0;
+    final parsed = double.tryParse(price.replaceAll(RegExp(r'[^0-9.]'), ''));
+    return parsed ?? 0.0;
+  }
 }

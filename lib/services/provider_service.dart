@@ -44,31 +44,60 @@ class ProviderService {
   }
 
   Future<void> updateBookingStatus(String bookingId, String status) async {
-    const allowed = {'accepted', 'rejected', 'confirmed', 'in_progress', 'completed'};
-    if (!allowed.contains(status)) {
-      throw ArgumentError('Unsupported booking status.');
+    // Map accepted to confirmed
+    final newStatus = status == 'accepted' ? 'confirmed' : status;
+    
+    const allowed = {'confirmed', 'rejected', 'in_progress', 'completed'};
+    if (!allowed.contains(newStatus)) {
+      throw ArgumentError('Unsupported booking status: $newStatus');
     }
     await _assertProviderAccess();
     final booking = await _db.collection('bookings').doc(bookingId).get();
     final bookingData = booking.data() ?? {};
     await booking.reference.update({
-      'status': status,
+      'status': newStatus,
       'providerUpdatedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
     final customerId = bookingData['customerId']?.toString() ?? '';
     if (customerId.isNotEmpty) {
-      final isCompleted = status == 'completed';
+      String title = '';
+      String message = '';
+      String type = '';
+
+      switch (newStatus) {
+        case 'confirmed':
+          title = 'Booking Confirmed';
+          message = 'Your booking has been accepted by the provider.';
+          type = 'booking_confirmed';
+          break;
+        case 'in_progress':
+          title = 'Service Started';
+          message = 'Your service is now in progress.';
+          type = 'service_started';
+          break;
+        case 'completed':
+          title = 'Service Completed';
+          message = 'Your service has been completed.';
+          type = 'service_completed';
+          break;
+        case 'rejected':
+          title = 'Booking Rejected';
+          message = 'Your booking request was rejected.';
+          type = 'booking_rejected';
+          break;
+      }
+
       await NotificationService.instance.create(
         userId: customerId,
-        title: isCompleted ? 'Booking completed' : 'Booking $status',
-        message: isCompleted
-            ? 'Your service is complete. Please leave a review.'
-            : 'Your provider updated your booking to $status.',
-        type: isCompleted ? 'booking_completed' : 'booking_confirmed',
+        title: title,
+        message: message,
+        type: type,
         relatedId: bookingId,
       );
-      if (isCompleted) {
+
+      if (newStatus == 'completed') {
         await NotificationService.instance.create(
           userId: customerId,
           title: 'Rate your service',

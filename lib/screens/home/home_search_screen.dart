@@ -313,7 +313,9 @@ class _ProviderCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Rs. ${provider.pricePerJob.toStringAsFixed(0)} · ${provider.category}',
+                    provider.formattedPrice.isNotEmpty
+                        ? '${provider.formattedPrice} · ${provider.category}'
+                        : provider.category,
                     style: AppTextStyles.price,
                   ),
                   const SizedBox(height: AppSpacing.xs),

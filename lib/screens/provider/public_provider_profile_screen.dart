@@ -3,18 +3,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:homeserve_app/models/provider_model.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
+import 'package:homeserve_app/services/booking_service.dart';
 
 /// Read-only provider profile shown to customers.
 class PublicProviderProfileScreen extends StatelessWidget {
   final String providerId;
   final VoidCallback? onBookNow;
   final VoidCallback? onBack;
+  final ValueChanged<String>? onViewBooking;
 
   const PublicProviderProfileScreen({
     super.key,
     required this.providerId,
     this.onBookNow,
     this.onBack,
+    this.onViewBooking,
   });
 
   ImageProvider? _getProfileImage(String url) {
@@ -94,7 +97,7 @@ class PublicProviderProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _section('Service', provider.serviceType),
-              _section('Price / Rate', provider.price.isNotEmpty ? provider.price : 'Contact for price'),
+              _section('Price (Rs.)', provider.formattedPrice.isNotEmpty ? provider.formattedPrice : 'Contact for price'),
               _section('Experience', provider.experience),
               _section('About', provider.description),
               _section(
@@ -105,9 +108,47 @@ class PublicProviderProfileScreen extends StatelessWidget {
               ),
               _section('Availability', _availabilityText(provider.availability)),
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: onBookNow,
-                child: const Text('View Price Estimate'),
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: BookingService.instance.watchBookingsForProvider(providerId),
+                builder: (context, bookingSnapshot) {
+                  if (!bookingSnapshot.hasData) {
+                    return FilledButton(
+                      onPressed: onBookNow,
+                      child: const Text(
+                        'View Price Estimate / Book Now',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }
+                  
+                  final bookings = bookingSnapshot.data!.docs;
+                  
+                  QueryDocumentSnapshot<Map<String, dynamic>>? activeBooking;
+                  for (final booking in bookings) {
+                    final status = booking.data()['status']?.toString();
+                    if (status == 'pending' || status == 'confirmed' || status == 'in_progress') {
+                      activeBooking = booking;
+                      break;
+                    }
+                  }
+
+                  if (activeBooking != null) {
+                    return FilledButton(
+                      onPressed: () => onViewBooking?.call(activeBooking!.id),
+                      child: const Text('Booking Status'),
+                    );
+                  }
+
+                  return FilledButton(
+                    onPressed: onBookNow,
+                    child: const Text(
+                      'View Price Estimate / Book Now',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
               ),
             ],
           );

@@ -1,4 +1,4 @@
-﻿import 'package:homeserve_app/services/auth_service.dart';
+import 'package:homeserve_app/services/auth_service.dart';
 // Screen 1 â€” Login / Sign Up
 // Implements: FR01 â€” User Authentication (Member 1)
 
@@ -176,28 +176,10 @@ String? _errorMessage;
                   Center(
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.home_repair_service_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Text(
-                              'HomeServe',
-                              style: AppTextStyles.h1.copyWith(fontSize: 22),
-                            ),
-                          ],
+                        Image.asset(
+                          'assets/images/homeserve_logo.jpg',
+                          width: 200,
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
