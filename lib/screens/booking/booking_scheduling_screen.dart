@@ -41,6 +41,7 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
   final List<String> _timeSlots = ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM'];
   final List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   bool _saving = false;
+  String? _bookingId;
 
   @override
   void dispose() {
@@ -239,11 +240,34 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
                   const Spacer(),
                   const SizedBox(height: AppSpacing.xxl),
 
-                  // Confirm Booking Primary Button
-                  PrimaryButton(
-                    label: 'Confirm Booking',
-                    onPressed: _saving ? null : _confirmBooking,
-                  ),
+                  // Buttons
+                  if (_bookingId == null)
+                    PrimaryButton(
+                      label: 'Save Booking',
+                      onPressed: _saving ? null : _saveBooking,
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        PrimaryButton(
+                          label: 'Update Booking',
+                          onPressed: _saving ? null : _saveBooking,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        OutlinedButton(
+                          onPressed: _saving ? null : () {
+                            widget.onBookingCreated?.call(_bookingId!);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.primary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.btn)),
+                          ),
+                          child: const Text('Continue to Payment', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
               ),
@@ -254,7 +278,7 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
     );
   }
 
-  Future<void> _confirmBooking() async {
+  Future<void> _saveBooking() async {
     if (widget.serviceName.trim().isEmpty ||
         widget.providerId.trim().isEmpty ||
         widget.serviceId.trim().isEmpty ||
@@ -269,22 +293,42 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
     setState(() => _saving = true);
     try {
       final now = DateTime.now();
-      final bookingId = await BookingService.instance.createBooking(
-        providerId: widget.providerId,
-        serviceId: widget.serviceId,
-        serviceName: widget.serviceName,
-        date: '${now.year}-${now.month.toString().padLeft(2, '0')}-${_selectedDay.toString().padLeft(2, '0')}',
-        time: _timeSlots[_selectedTimeSlotIndex],
-        address: _addressController.text,
-        price: widget.price,
-      );
-      if (!mounted) return;
-      widget.onBookingCreated?.call(bookingId);
-      widget.onConfirmBooking?.call();
+      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${_selectedDay.toString().padLeft(2, '0')}';
+      final timeStr = _timeSlots[_selectedTimeSlotIndex];
+      
+      if (_bookingId == null) {
+        final newBookingId = await BookingService.instance.createBooking(
+          providerId: widget.providerId,
+          serviceId: widget.serviceId,
+          serviceName: widget.serviceName,
+          date: dateStr,
+          time: timeStr,
+          address: _addressController.text,
+          price: widget.price,
+          specialRequest: _notesController.text,
+        );
+        if (!mounted) return;
+        setState(() => _bookingId = newBookingId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking saved. You can edit or continue to payment.')),
+        );
+      } else {
+        await BookingService.instance.updateBookingDetails(
+          bookingId: _bookingId!,
+          date: dateStr,
+          time: timeStr,
+          address: _addressController.text,
+          specialRequest: _notesController.text,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking updated.')),
+        );
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not create booking: $error')),
+          SnackBar(content: Text('Could not save booking: $error')),
         );
       }
     } finally {

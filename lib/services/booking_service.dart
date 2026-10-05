@@ -17,6 +17,7 @@ class BookingService {
     required String time,
     required String address,
     required double price,
+    String specialRequest = '',
     String bookingType = 'normal',
   }) async {
     final customerId = _auth.currentUser?.uid;
@@ -34,6 +35,7 @@ class BookingService {
       'date': date,
       'time': time,
       'address': address.trim(),
+      'specialRequest': specialRequest.trim(),
       'price': price,
       'bookingType': bookingType,
       'paymentStatus': 'pending',
@@ -74,8 +76,40 @@ class BookingService {
       time: _formatTime(DateTime.now()),
       address: address,
       price: 0,
+      specialRequest: issueDescription,
       bookingType: 'emergency',
     );
+  }
+
+  Future<void> updateBookingDetails({
+    required String bookingId,
+    required String date,
+    required String time,
+    required String address,
+    required String specialRequest,
+  }) async {
+    final customerId = _auth.currentUser?.uid;
+    if (customerId == null) {
+      throw StateError('You must be signed in to update a booking.');
+    }
+    final booking = await _db.collection('bookings').doc(bookingId).get();
+    if (!booking.exists) throw StateError('Booking not found.');
+    if (booking.data()?['customerId'] != customerId) {
+      throw StateError('You can only update your own booking.');
+    }
+    
+    final status = booking.data()?['status'];
+    if (status != 'pending') {
+      throw StateError('Only pending bookings can be edited.');
+    }
+
+    await booking.reference.update({
+      'date': date,
+      'time': time,
+      'address': address.trim(),
+      'specialRequest': specialRequest.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   String _formatTime(DateTime value) {
