@@ -389,13 +389,40 @@ String? _errorMessage;
                   ),
                   const SizedBox(height: AppSpacing.xxl),
 
-                  // Continue with Google Outline Button
-                  OutlineAppButton(
-                    label: 'Continue with Google',
-                    icon: Icons.g_mobiledata_rounded,
+                  // Continue with Google Button
+                  ElevatedButton(
                     onPressed: () {
                       // TODO: Google Sign-in flow
                     },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.text,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.btn),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.network(
+                          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
+                          height: 20,
+                          width: 20,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata_rounded, color: Colors.black, size: 28),
+                        ),
+                        const SizedBox(width: AppSpacing.lg),
+                        Text(
+                          'Continue with Google',
+                          style: AppTextStyles.btn.copyWith(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const Spacer(),

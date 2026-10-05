@@ -28,7 +28,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  int _selectedPaymentMethod = 0; // 0: Card, 1: Cash, 2: Mobile Wallet
+  int _selectedPaymentMethod = 0; // 0: Card, 1: Cash
 
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
@@ -107,18 +107,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   // Payment Method Options
                   _buildPaymentMethodTile(
                     index: 0,
-                    icon: Icons.credit_card_rounded,
+                    icon: Icons.credit_card,
                     label: 'Card',
                   ),
                   _buildPaymentMethodTile(
                     index: 1,
-                    icon: Icons.payments_outlined,
+                    icon: Icons.money,
                     label: 'Cash',
-                  ),
-                  _buildPaymentMethodTile(
-                    index: 2,
-                    icon: Icons.account_balance_wallet_outlined,
-                    label: 'Mobile Wallet',
                   ),
                   const SizedBox(height: AppSpacing.xl),
 

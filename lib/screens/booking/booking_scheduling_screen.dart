@@ -32,16 +32,16 @@ class BookingSchedulingScreen extends StatefulWidget {
 }
 
 class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
-  int _selectedDay = 3;
+  DateTime? _selectedDate;
   int _selectedTimeSlotIndex = 0; // 0: 9:00 AM
 
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
 
   final List<String> _timeSlots = ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM'];
-  final List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   bool _saving = false;
   String? _bookingId;
+  bool _isEditing = true;
 
   @override
   void dispose() {
@@ -50,8 +50,24 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
     super.dispose();
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isViewMode = _bookingId != null && !_isEditing;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -73,201 +89,158 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
                 children: [
                   // App Bar
                   AppBarWithIcon(
-                    title: 'Book Service',
+                    title: isViewMode ? 'Booking Summary' : 'Book Service',
                     onLeadingPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
-                  // Select Date Section
-                  Text(
-                    'Select Date',
-                    style: AppTextStyles.meta.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Calendar Weekday Header & Day Grid
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.btn),
-                    ),
-                    child: Column(
-                      children: [
-                        // Weekday headers
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: _weekDays.map((day) {
-                            return SizedBox(
-                              width: 32,
-                              child: Text(
-                                day,
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.meta.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-
-                        // Days 1 through 7
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: List.generate(7, (index) {
-                            final dayNum = index + 1;
-                            final isSelected = dayNum == _selectedDay;
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedDay = dayNum;
-                                });
-                              },
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.primary : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(AppRadius.severityTag),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '$dayNum',
-                                  style: isSelected
-                                      ? AppTextStyles.meta.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                        )
-                                      : AppTextStyles.meta.copyWith(
-                                          color: AppColors.text,
-                                        ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Select Time Section
-                  Text(
-                    'Select Time',
-                    style: AppTextStyles.meta.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Time Slots Wrap
-                  Wrap(
-                    spacing: AppSpacing.md,
-                    runSpacing: AppSpacing.md,
-                    children: List.generate(_timeSlots.length, (index) {
-                      final isSelected = _selectedTimeSlotIndex == index;
-                      return ChipFilter(
-                        label: _timeSlots[index],
-                        isActive: isSelected,
-                        onTap: () {
-                          setState(() {
-                            _selectedTimeSlotIndex = index;
-                          });
-                        },
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Address Input Field
-                  TextFormField(
-                    controller: _addressController,
-                    style: AppTextStyles.fieldFilled,
-                    decoration: InputDecoration(
-                      hintText: 'Service Address',
-                      hintStyle: AppTextStyles.field,
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      prefixIcon: const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxl,
-                        vertical: 11,
+                  if (isViewMode) ...[
+                    // Read-Only View Mode
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.btn),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.btn),
-                        borderSide: const BorderSide(color: AppColors.primary),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Service', style: AppTextStyles.meta.copyWith(color: AppColors.textLight)),
+                          Text(widget.serviceName, style: AppTextStyles.h3),
+                          const SizedBox(height: AppSpacing.lg),
+                          Text('Date & Time', style: AppTextStyles.meta.copyWith(color: AppColors.textLight)),
+                          Text('${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year} at ${_timeSlots[_selectedTimeSlotIndex]}', style: AppTextStyles.body),
+                          const SizedBox(height: AppSpacing.lg),
+                          Text('Address', style: AppTextStyles.meta.copyWith(color: AppColors.textLight)),
+                          Text(_addressController.text, style: AppTextStyles.body),
+                          if (_notesController.text.trim().isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.lg),
+                            Text('Note', style: AppTextStyles.meta.copyWith(color: AppColors.textLight)),
+                            Text(_notesController.text, style: AppTextStyles.body),
+                          ],
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Notes for Provider Field
-                  TextFormField(
-                    controller: _notesController,
-                    maxLines: 2,
-                    style: AppTextStyles.fieldFilled,
-                    decoration: InputDecoration(
-                      hintText: 'Notes for provider (optional)',
-                      hintStyle: AppTextStyles.field,
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxl,
-                        vertical: 11,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.btn),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.btn),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Buttons
-                  if (_bookingId == null)
-                    PrimaryButton(
-                      label: 'Save Booking',
-                      onPressed: _saving ? null : _saveBooking,
-                    )
-                  else
+                    const Spacer(),
+                    const SizedBox(height: AppSpacing.xxl),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        PrimaryButton(
-                          label: 'Update Booking',
-                          onPressed: _saving ? null : _saveBooking,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
                         OutlinedButton(
                           onPressed: _saving ? null : () {
-                            widget.onBookingCreated?.call(_bookingId!);
+                            setState(() => _isEditing = true);
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: const BorderSide(color: AppColors.primary),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.btn)),
                           ),
-                          child: const Text('Continue to Payment', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                          child: const Text('Edit Booking', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        PrimaryButton(
+                          label: 'Continue to Payment',
+                          onPressed: _saving ? null : () {
+                            widget.onBookingCreated?.call(_bookingId!);
+                          },
                         ),
                       ],
                     ),
+                  ] else ...[
+                    // Edit Mode
+                    // Select Date Section
+                    Text('Select Date', style: AppTextStyles.meta.copyWith(fontWeight: FontWeight.w700, color: AppColors.text)),
+                    const SizedBox(height: AppSpacing.md),
+                    InkWell(
+                      onTap: () => _selectDate(context),
+                      borderRadius: BorderRadius.circular(AppRadius.btn),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(AppRadius.btn),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month, color: AppColors.primary, size: 20),
+                            const SizedBox(width: AppSpacing.md),
+                            Text(
+                              _selectedDate == null
+                                  ? 'Choose a date'
+                                  : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                              style: AppTextStyles.field,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+
+                    // Select Time Section
+                    Text('Select Time', style: AppTextStyles.meta.copyWith(fontWeight: FontWeight.w700, color: AppColors.text)),
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: AppSpacing.md,
+                      runSpacing: AppSpacing.md,
+                      children: List.generate(_timeSlots.length, (index) {
+                        final isSelected = _selectedTimeSlotIndex == index;
+                        return ChipFilter(
+                          label: _timeSlots[index],
+                          isActive: isSelected,
+                          onTap: () {
+                            setState(() {
+                              _selectedTimeSlotIndex = index;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+
+                    // Address Input Field
+                    TextFormField(
+                      controller: _addressController,
+                      style: AppTextStyles.fieldFilled,
+                      decoration: InputDecoration(
+                        hintText: 'Service Address',
+                        hintStyle: AppTextStyles.field,
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        prefixIcon: const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: 11),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.btn), borderSide: const BorderSide(color: AppColors.border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.btn), borderSide: const BorderSide(color: AppColors.primary)),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // Notes for Provider Field
+                    TextFormField(
+                      controller: _notesController,
+                      maxLines: 2,
+                      style: AppTextStyles.fieldFilled,
+                      decoration: InputDecoration(
+                        hintText: 'Notes for provider (optional)',
+                        hintStyle: AppTextStyles.field,
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: 11),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.btn), borderSide: const BorderSide(color: AppColors.border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.btn), borderSide: const BorderSide(color: AppColors.primary)),
+                      ),
+                    ),
+
+                    const Spacer(),
+                    const SizedBox(height: AppSpacing.xxl),
+
+                    // Buttons
+                    PrimaryButton(
+                      label: _bookingId == null ? 'Save Booking' : 'Update Booking',
+                      onPressed: _saving ? null : _saveBooking,
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.sm),
                 ],
               ),
@@ -282,7 +255,7 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
     if (widget.serviceName.trim().isEmpty ||
         widget.providerId.trim().isEmpty ||
         widget.serviceId.trim().isEmpty ||
-        _selectedDay < 1 ||
+        _selectedDate == null ||
         _timeSlots[_selectedTimeSlotIndex].isEmpty ||
         _addressController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -292,8 +265,7 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
     }
     setState(() => _saving = true);
     try {
-      final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${_selectedDay.toString().padLeft(2, '0')}';
+      final dateStr = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
       final timeStr = _timeSlots[_selectedTimeSlotIndex];
       
       if (_bookingId == null) {
@@ -308,9 +280,12 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
           specialRequest: _notesController.text,
         );
         if (!mounted) return;
-        setState(() => _bookingId = newBookingId);
+        setState(() {
+          _bookingId = newBookingId;
+          _isEditing = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking saved. You can edit or continue to payment.')),
+          const SnackBar(content: Text('Booking saved.')),
         );
       } else {
         await BookingService.instance.updateBookingDetails(
@@ -321,6 +296,9 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
           specialRequest: _notesController.text,
         );
         if (!mounted) return;
+        setState(() {
+          _isEditing = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Booking updated.')),
         );

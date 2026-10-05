@@ -52,6 +52,12 @@ class AppTextStyles {
 
   static TextStyle get body => fieldFilled;
   static TextStyle get small => meta;
+  static TextStyle get btn => button;
+  static TextStyle get h3 => GoogleFonts.poppins(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: AppColors.primaryDark,
+  );
 
   // ── Poppins styles ──
 
