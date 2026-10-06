@@ -60,17 +60,9 @@ class BookingTrackingScreen extends StatelessWidget {
                   ),
                   title: Text(entry.value.replaceAll('_', ' ').toUpperCase()),
                 )),
-              if (status != 'completed' && status != 'cancelled')
+              if (status == 'pending')
                 OutlinedButton(
-                  onPressed: () async {
-                    try {
-                      await BookingService.instance.cancelBooking(bookingId);
-                    } catch (error) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
-                      }
-                    }
-                  },
+                  onPressed: () => _showCancellationDialog(context, bookingId),
                   child: const Text('Cancel Booking'),
                 ),
               if (status == 'completed') ...[
@@ -115,6 +107,144 @@ class BookingTrackingScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showCancellationDialog(BuildContext context, String bookingId) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cancel Booking?'),
+          content: const Text('Are you sure you want to cancel this booking?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Keep Booking'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showCancellationSurvey(context, bookingId);
+              },
+              child: const Text('Cancel Booking'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCancellationSurvey(BuildContext context, String bookingId) {
+    final reasons = [
+      'I changed my mind',
+      'I found another service provider',
+      'The selected date/time is not convenient',
+      'Price is too high',
+      'I no longer need the service',
+      'Booking was made by mistake',
+      'Other',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
+      ),
+      builder: (context) {
+        return _CancellationSurveySheet(bookingId: bookingId, reasons: reasons);
+      },
+    );
+  }
+}
+
+class _CancellationSurveySheet extends StatefulWidget {
+  final String bookingId;
+  final List<String> reasons;
+
+  const _CancellationSurveySheet({required this.bookingId, required this.reasons});
+
+  @override
+  State<_CancellationSurveySheet> createState() => _CancellationSurveySheetState();
+}
+
+class _CancellationSurveySheetState extends State<_CancellationSurveySheet> {
+  String? _selectedReason;
+  final _otherController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
+    if (_selectedReason == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      await BookingService.instance.cancelBooking(
+        widget.bookingId,
+        _selectedReason!,
+        note: _selectedReason == 'Other' ? _otherController.text : null,
+      );
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: AppSpacing.xl,
+        right: AppSpacing.xl,
+        top: AppSpacing.xl,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Why are you cancelling?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: AppSpacing.lg),
+          ...widget.reasons.map((reason) {
+            return ListTile(
+              title: Text(reason),
+              leading: Radio<String>(
+                value: reason,
+                groupValue: _selectedReason,
+                onChanged: (val) {
+                  setState(() => _selectedReason = val);
+                },
+              ),
+              contentPadding: EdgeInsets.zero,
+              onTap: () {
+                setState(() => _selectedReason = reason);
+              },
+            );
+          }),
+          if (_selectedReason == 'Other') ...[
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _otherController,
+              decoration: const InputDecoration(
+                hintText: 'Please tell us why...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.xl),
+          PrimaryButton(
+            label: _isLoading ? 'Cancelling...' : 'Submit Cancellation',
+            onPressed: _selectedReason == null || _isLoading ? null : _submit,
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
       ),
     );
   }

@@ -172,7 +172,7 @@ class BookingService {
         .snapshots();
   }
 
-  Future<void> cancelBooking(String bookingId) async {
+  Future<void> cancelBooking(String bookingId, String reason, {String? note}) async {
     final customerId = _auth.currentUser?.uid;
     if (customerId == null) throw StateError('You must be signed in.');
     final booking = await _db.collection('bookings').doc(bookingId).get();
@@ -180,17 +180,21 @@ class BookingService {
       throw StateError('You can only cancel your own booking.');
     }
     final status = booking.data()?['status'];
-    if (status == 'completed' || status == 'cancelled') {
-      throw StateError('This booking cannot be cancelled.');
+    if (status != 'pending') {
+      throw StateError('You can only cancel a booking while it is pending.');
     }
     await booking.reference.update({
       'status': 'cancelled',
+      'cancelledBy': 'customer',
+      'cancellationReason': reason,
+      if (note != null && note.isNotEmpty) 'cancellationNote': note,
+      'cancelledAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
     await NotificationService.instance.create(
       userId: customerId,
-      title: 'Booking cancelled',
-      message: 'Your booking has been cancelled.',
+      title: 'Booking Cancelled',
+      message: 'You have cancelled this booking.',
       type: 'booking_cancelled',
       relatedId: bookingId,
     );
@@ -198,8 +202,8 @@ class BookingService {
     if (providerId.isNotEmpty) {
       await NotificationService.instance.create(
         userId: providerId,
-        title: 'Booking cancelled',
-        message: 'A customer cancelled a booking request.',
+        title: 'Booking Cancelled',
+        message: 'The customer cancelled the booking.',
         type: 'booking_cancelled',
         relatedId: bookingId,
       );

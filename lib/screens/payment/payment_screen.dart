@@ -28,7 +28,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  int _selectedPaymentMethod = 0; // 0: Card, 1: Cash
+  int _selectedPaymentMethod = 0; // 0: Cash, 1: Card
 
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
@@ -70,29 +70,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
-                  // Service Summary Card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Total Amount Section
+                  Center(
+                    child: Column(
                       children: [
-                        Text(widget.serviceName, style: AppTextStyles.rowSplit),
+                        Text('Service: ${widget.serviceName}', style: AppTextStyles.meta.copyWith(color: AppColors.textLight)),
+                        const SizedBox(height: AppSpacing.md),
+                        Text('Total Amount', style: AppTextStyles.meta.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           'Rs. ${widget.amount.toStringAsFixed(0)}',
-                          style: AppTextStyles.rowSplit.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
+                          style: AppTextStyles.h1.copyWith(
+                            fontSize: 32,
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
+                  const SizedBox(height: AppSpacing.xxxl),
 
                   // Payment Method Section Title
                   Text(
@@ -107,18 +103,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   // Payment Method Options
                   _buildPaymentMethodTile(
                     index: 0,
-                    icon: Icons.credit_card,
-                    label: 'Card',
+                    title: 'Cash',
+                    subtitle: 'Pay after service',
+                    imagePath: 'assets/images/cash_icon.png',
+                    imageWidth: 40,
                   ),
+                  const SizedBox(height: AppSpacing.md),
                   _buildPaymentMethodTile(
                     index: 1,
-                    icon: Icons.money,
-                    label: 'Cash',
+                    title: 'Card',
+                    subtitle: 'Visa, Mastercard',
+                    imagePath: 'assets/images/visa_mastercard.png',
+                    imageWidth: 60,
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
                   // Card Inputs (shown when Card is selected)
-                  if (_selectedPaymentMethod == 0) ...[
+                  if (_selectedPaymentMethod == 1) ...[
                     TextFormField(
                       controller: _cardNumberController,
                       style: AppTextStyles.fieldFilled,
@@ -232,8 +233,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildPaymentMethodTile({
     required int index,
-    required IconData icon,
-    required String label,
+    required String title,
+    required String subtitle,
+    required String imagePath,
+    required double imageWidth,
   }) {
     final isSelected = _selectedPaymentMethod == index;
     return GestureDetector(
@@ -242,25 +245,33 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedPaymentMethod = index;
         });
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withAlpha(20) : AppColors.surface,
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
         child: Row(
           children: [
             Container(
-              width: 18,
-              height: 18,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.border,
+                  color: isSelected ? AppColors.primary : Colors.grey.shade400,
                   width: 2,
                 ),
               ),
               child: isSelected
                   ? Center(
                       child: Container(
-                        width: 8,
-                        height: 8,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.primary,
@@ -269,10 +280,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     )
                   : null,
             ),
-            const SizedBox(width: AppSpacing.lg),
-            Icon(icon, size: AppIconSize.standard, color: AppColors.text),
-            const SizedBox(width: AppSpacing.lg),
-            Text(label, style: AppTextStyles.checklist),
+            const SizedBox(width: AppSpacing.xl),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.rowSplit.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.meta.copyWith(color: AppColors.textLight),
+                  ),
+                ],
+              ),
+            ),
+            Image.asset(
+              imagePath,
+              width: imageWidth,
+              height: 30,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, color: Colors.grey),
+            ),
           ],
         ),
       ),

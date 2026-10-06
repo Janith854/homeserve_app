@@ -1,105 +1,143 @@
-Update the existing HomeServe app with these UI and flow changes.
+Update the existing HomeServe Payment screen.
 
 IMPORTANT:
-Keep the existing HomeServe design, colors, navigation, Firebase logic, and functionality.
-Do not make unrelated changes.
+Do not change the existing payment logic, Firebase logic, navigation, or overall HomeServe design.
 
-### 1. Booking Service
+### 1. CASH PAYMENT OPTION
 
-After the customer taps **Save Booking**:
+Improve the Cash payment option.
 
-* Save the booking to Firestore as usual.
-* Switch the screen to **Read-Only View Mode**.
-* Show the saved:
+Currently the Cash option is too plain.
 
-  * Date
-  * Time
-  * Address
-  * Note
-* Do not keep the form editable in View Mode.
+Make it look similar in quality to the Card option.
 
-Show two buttons:
+Show:
 
-**Edit Booking**
-→ Opens the editable form with the existing saved values.
+💵 Cash
+Pay after service
 
-**Continue to Payment**
-→ Opens the Payment screen.
+Use a clean professional cash/money icon.
 
-After editing:
+The Cash option should:
+- Have a proper icon on the left
+- Have clear "Cash" text
+- Have "Pay after service" subtitle
+- Use the same card style as the Card option
+- Have proper spacing and alignment
+- Use the HomeServe design style
 
-**Edit Booking → Update Booking**
-→ Update the SAME Firestore booking document.
-→ Return to Read-Only View Mode.
-→ Show the updated values.
+When Cash is selected:
+- Highlight the Cash card with Deep Teal
+- Show the selected radio indicator
+- Hide Card Number, MM/YY and CVV fields
+- Keep the Pay button working
 
-Do NOT create a duplicate booking document.
+### 2. REPLACE THE WRONG PAYMENT IMAGES
 
-### Date Selection
+The current Visa/Mastercard and Cash images shown on the Payment screen are incorrect/wrong images.
 
-Replace the current horizontal date selector with a proper **Calendar / Date Picker**.
+I have already added the correct image assets inside the project's assets folder.
 
-The selected date must be saved correctly to the booking.
+IMPORTANT:
 
-### 2. Payment Screen
+DO NOT use the currently displayed/wrong images.
 
-Remove **Mobile Wallet** completely.
+First inspect the assets folder and find the exact payment images I added.
 
-Keep only:
+Use the exact asset files I provided for:
 
-* **Card**
-* **Cash**
+- Visa + Mastercard
+- Cash / Money
+
+Do not generate new images.
+Do not use screenshots.
+Do not use unrelated images.
+Do not use placeholder images.
+
+Use the existing asset filenames exactly as they are.
+
+If needed, properly declare them in `pubspec.yaml`.
+
+### 3. CARD PAYMENT OPTION
 
 For Card:
 
-* Add a proper Visa/card icon.
-* Keep the design clean and professional.
+Show the correct Visa + Mastercard asset from the assets folder.
 
-For Cash:
+Make sure:
+- The image is properly sized
+- It is not stretched
+- It is not too small
+- It does not look like a screenshot
+- It fits cleanly inside the Card payment option
+- It keeps the existing HomeServe style
 
-* Add a proper cash/money icon.
+### 4. CASH PAYMENT OPTION
 
-Keep the existing HomeServe colors and design style.
+Use the correct Cash/Money asset from the assets folder.
 
-### 3. Login & Sign Up
+Make sure:
+- Correct image is displayed
+- Proper size
+- Proper alignment
+- No stretching
+- No unwanted background
+- Looks professional
 
-Improve the Google Sign-In button on both Login and Sign Up.
+### 5. DO NOT CHANGE PRICE
 
-Use:
+Keep the current improved price layout:
 
-* White button/background
-* Official colorful Google "G" icon
-* Proper icon and text alignment
-* Good spacing
-* Clean modern appearance
+Service: Plumbing
 
-Keep the existing Google Sign-In functionality unchanged.
+Total Amount
 
-### IMPORTANT
+Rs. 3600
 
-Do not change:
+Keep the price clearly visible.
 
-* Firebase configuration
-* Firestore structure
-* Existing booking/payment logic
-* Existing navigation
-* HomeServe branding
-* Other screens unnecessarily
+### 6. FINAL PAYMENT UI
 
-After implementing:
+The payment methods should look like:
 
-1. Run `flutter analyze`
-2. Fix any errors.
+Card
+Visa + Mastercard
+
+Cash
+Pay after service
+
+Only Card and Cash.
+
+No Mobile Wallet.
+
+### 7. IMPORTANT
+
+Do not:
+- Create new payment images
+- Use the wrong existing images
+- Use screenshots as icons
+- Change Firebase
+- Change Firestore payment logic
+- Change booking logic
+- Change navigation
+- Remove Card functionality
+- Remove Cash functionality
+
+Use the exact payment image assets I already added to the project.
+
+### TEST
+
+After making the changes:
+
+1. Run `flutter pub get`
+2. Run `flutter analyze`
 3. Run the app on the Android phone.
-4. Test:
+4. Open Payment.
+5. Verify the correct Visa/Mastercard image appears.
+6. Verify the correct Cash image appears.
+7. Select Card → card fields appear.
+8. Select Cash → card fields disappear.
+9. Both payment methods work correctly.
+10. Pay & Confirm continues to Booking Tracking.
 
-   * Save Booking → View Mode
-   * Edit Booking → Update Booking
-   * Same Firestore booking document is updated
-   * Calendar Date Picker
-   * Continue to Payment
-   * Card/Cash options
-   * Google Sign-In on Login
-   * Google Sign-In on Sign Up
-
-Only report COMPLETE after everything works correctly.
+Only report COMPLETE after the correct assets are displayed and the payment flow still works.

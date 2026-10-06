@@ -38,7 +38,7 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
 
-  final List<String> _timeSlots = ['9:00 AM', '11:00 AM', '2:00 PM', '4:00 PM'];
+  final List<String> _timeSlots = ['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
   bool _saving = false;
   String? _bookingId;
   bool _isEditing = true;
@@ -186,14 +186,31 @@ class _BookingSchedulingScreenState extends State<BookingSchedulingScreen> {
                       runSpacing: AppSpacing.md,
                       children: List.generate(_timeSlots.length, (index) {
                         final isSelected = _selectedTimeSlotIndex == index;
-                        return ChipFilter(
-                          label: _timeSlots[index],
-                          isActive: isSelected,
+                        return InkWell(
                           onTap: () {
                             setState(() {
                               _selectedTimeSlotIndex = index;
                             });
                           },
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppColors.primary : AppColors.surface,
+                              border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                              borderRadius: BorderRadius.circular(AppRadius.card),
+                              boxShadow: isSelected
+                                  ? [BoxShadow(color: AppColors.primary.withAlpha(77), blurRadius: 4, offset: const Offset(0, 2))]
+                                  : null,
+                            ),
+                            child: Text(
+                              _timeSlots[index],
+                              style: AppTextStyles.meta.copyWith(
+                                color: isSelected ? Colors.white : AppColors.text,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         );
                       }),
                     ),
