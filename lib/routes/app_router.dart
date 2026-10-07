@@ -2,6 +2,14 @@ import 'package:homeserve_app/services/auth_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homeserve_app/screens/screens.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void _completeOnboarding(BuildContext context) {
+  SharedPreferences.getInstance().then((prefs) {
+    prefs.setBool('hasSeenOnboarding', true);
+  });
+  context.go(AppRouteNames.login);
+}
 
 /// Centralized Route Names
 class AppRouteNames {
@@ -50,7 +58,7 @@ class AppRouteNames {
 
 /// GoRouter configuration for Home Service Booking App
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRouteNames.onboarding1,
+  initialLocation: AppRouteNames.splash,
   refreshListenable: authNotifier,
   redirect: (context, state) {
     if (authNotifier.isLoading && authNotifier.user != null) {
@@ -60,7 +68,8 @@ final GoRouter appRouter = GoRouter(
     final bool isAuthenticated = authNotifier.isAuthenticated;
     final bool isAuthRoute = state.matchedLocation == AppRouteNames.login || 
                              state.matchedLocation == AppRouteNames.signup ||
-                             state.matchedLocation.startsWith('/onboarding');
+                             state.matchedLocation.startsWith('/onboarding') ||
+                             state.matchedLocation == AppRouteNames.splash;
                              
     if (!isAuthenticated && !isAuthRoute) {
       if (!authNotifier.isLoading) {
@@ -84,7 +93,7 @@ final GoRouter appRouter = GoRouter(
         targetRoute = AppRouteNames.providerDashboard;
       }
 
-      if (isAuthRoute) {
+      if (isAuthRoute && state.matchedLocation != AppRouteNames.splash) {
         return targetRoute;
       }
 
@@ -121,7 +130,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRouteNames.onboarding1,
       builder: (context, state) => Onboarding1Screen(
         onNext: () => context.push(AppRouteNames.onboarding2),
-        onSkip: () => context.go(AppRouteNames.login),
+        onSkip: () => _completeOnboarding(context),
       ),
     ),
 
@@ -130,7 +139,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRouteNames.onboarding2,
       builder: (context, state) => Onboarding2Screen(
         onNext: () => context.push(AppRouteNames.onboarding3),
-        onSkip: () => context.go(AppRouteNames.login),
+        onSkip: () => _completeOnboarding(context),
       ),
     ),
 
@@ -138,8 +147,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.onboarding3,
       builder: (context, state) => Onboarding3Screen(
-        onGetStarted: () => context.push(AppRouteNames.splash),
-        onSkip: () => context.push(AppRouteNames.splash),
+        onGetStarted: () => _completeOnboarding(context),
+        onSkip: () => _completeOnboarding(context),
       ),
     ),
 

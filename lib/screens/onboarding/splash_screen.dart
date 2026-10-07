@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:homeserve_app/screens/auth/login_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:homeserve_app/routes/app_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,15 +14,23 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToLogin();
+    _navigateToNext();
   }
 
-  Future<void> _navigateToLogin() async {
+  Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+
+    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+
+    if (hasSeenOnboarding) {
+      context.go(AppRouteNames.login);
+    } else {
+      context.go(AppRouteNames.onboarding1);
+    }
   }
 
   @override
