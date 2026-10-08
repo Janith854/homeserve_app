@@ -60,7 +60,7 @@ class AppRouteNames {
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRouteNames.splash,
   refreshListenable: authNotifier,
-  redirect: (context, state) {
+  redirect: (context, state) async {
     if (authNotifier.isLoading && authNotifier.user != null) {
       return null;
     }
@@ -76,6 +76,14 @@ final GoRouter appRouter = GoRouter(
         return AppRouteNames.login;
       }
       return null;
+    }
+
+    if (!isAuthenticated && state.matchedLocation == AppRouteNames.onboarding1) {
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+      if (hasSeenOnboarding) {
+        return AppRouteNames.login;
+      }
     }
     
     if (isAuthenticated) {
