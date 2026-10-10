@@ -36,7 +36,7 @@ class BookingTrackingScreen extends StatelessWidget {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final data = snapshot.data!.data();
           if (data == null) return const Center(child: Text('Booking not found.'));
-          final status = data['status']?.toString() ?? 'pending';
+          final status = data['status']?.toString().toLowerCase() ?? 'pending';
           final steps = ['pending', 'confirmed', 'in_progress', 'completed'];
           final current = status == 'cancelled' ? -1 : steps.indexOf(status);
           return ListView(
@@ -61,9 +61,26 @@ class BookingTrackingScreen extends StatelessWidget {
                   title: Text(entry.value.replaceAll('_', ' ').toUpperCase()),
                 )),
               if (status == 'pending')
-                OutlinedButton(
-                  onPressed: () => _showCancellationDialog(context, bookingId),
-                  child: const Text('Cancel Booking'),
+                Padding(
+                  padding: const EdgeInsets.only(top: 24.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.btn),
+                        ),
+                      ),
+                      onPressed: () => _showCancellationDialog(context, bookingId),
+                      child: const Text(
+                        'Cancel Booking',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
                 ),
               if (status == 'completed') ...[
                 FilledButton(

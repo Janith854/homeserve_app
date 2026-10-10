@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:homeserve_app/theme/app_theme.dart';
 import 'package:homeserve_app/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
@@ -213,6 +214,17 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     },
                     child: const Text('Logout', style: TextStyle(color: Colors.white)),
                   ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => _confirmDeleteAccount(context),
+                    child: const Text('Delete Account'),
+                  ),
                 ],
               ),
             ),
@@ -408,6 +420,68 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
   Future<void> logout() async {
     await authNotifier.logout();
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Account?'),
+          content: const Text('Are you sure you want to permanently delete your account? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Delete Account'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+    if (!context.mounted) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Update Firestore first
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'accountStatus': 'deleted',
+          'deletedAt': FieldValue.serverTimestamp(),
+        });
+        
+        // Try to delete auth account (may require reauthentication)
+        await user.delete();
+      }
+      
+      await authNotifier.logout();
+      if (context.mounted) {
+        Navigator.pop(context); // close loading
+        context.go(AppRouteNames.login);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not delete account. You may need to log in again first. Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildNotificationIcon(IconData icon) {

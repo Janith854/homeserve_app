@@ -123,23 +123,22 @@ class BookingService {
     final data = booking.data() ?? {};
     await booking.reference.update({
       'paymentStatus': 'paid',
-      'status': 'confirmed',
       'updatedAt': FieldValue.serverTimestamp(),
     });
     await NotificationService.instance.create(
       userId: data['customerId']?.toString() ?? _auth.currentUser!.uid,
-      title: 'Booking confirmed',
-      message: 'Your payment was successful and booking is confirmed.',
-      type: 'booking_confirmed',
+      title: 'Payment successful',
+      message: 'Your payment was successful for the booking.',
+      type: 'payment_completed',
       relatedId: bookingId,
     );
     final providerId = data['providerId']?.toString() ?? '';
     if (providerId.isNotEmpty) {
       await NotificationService.instance.create(
         userId: providerId,
-        title: 'Booking confirmed',
-        message: 'A booking has been paid and confirmed.',
-        type: 'booking_confirmed',
+        title: 'Payment successful',
+        message: 'A customer has paid for a pending booking.',
+        type: 'payment_completed',
         relatedId: bookingId,
       );
     }
@@ -208,6 +207,14 @@ class BookingService {
         relatedId: bookingId,
       );
     }
+    // Notify admins
+    final serviceName = booking.data()?['serviceName']?.toString() ?? 'a service';
+    await NotificationService.instance.notifyAdmins(
+      title: 'Booking Cancelled',
+      message: 'A customer cancelled a booking for $serviceName.',
+      type: 'booking_cancelled',
+      relatedId: bookingId,
+    );
   }
 
   Future<void> updateBookingStatus(String bookingId, String newStatus) async {
@@ -257,6 +264,14 @@ class BookingService {
       userId: customerId,
       title: title,
       message: message,
+      type: type,
+      relatedId: bookingId,
+    );
+    // Notify admins of booking status changes
+    final serviceName = data['serviceName']?.toString() ?? 'a service';
+    await NotificationService.instance.notifyAdmins(
+      title: 'Booking Update',
+      message: 'Booking for $serviceName is now $newStatus.',
       type: type,
       relatedId: bookingId,
     );

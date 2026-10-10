@@ -621,8 +621,10 @@ class _UserManagementTabState extends State<_UserManagementTab> {
                 final query = _query.trim().toLowerCase();
 
                 if (query.isEmpty) {
-                  return true;
+                  return data['accountStatus'] != 'removed' && data['accountStatus'] != 'deleted';
                 }
+
+                if (data['accountStatus'] == 'removed' || data['accountStatus'] == 'deleted') return false;
 
                 return [
                   data['fullName'],
@@ -702,11 +704,21 @@ class _UserManagementTabState extends State<_UserManagementTab> {
                                     : '${data['email'] ?? ''}\n${data['phone'] ?? ''}',
                               ),
                               isThreeLine: !widget.isProvider,
-                              trailing: Chip(
-                                label: Text(status),
-                                backgroundColor: status == 'suspended'
-                                    ? Colors.red.shade100
-                                    : Colors.green.shade100,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Chip(
+                                    label: Text(status),
+                                    backgroundColor: status == 'suspended'
+                                        ? Colors.red.shade100
+                                        : Colors.green.shade100,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _confirmRemove(data),
+                                  ),
+                                ],
                               ),
                               onTap: () => widget.onEdit(data),
                             ),
@@ -719,5 +731,63 @@ class _UserManagementTabState extends State<_UserManagementTab> {
         },
       ),
     );
+  }
+
+  Future<void> _confirmRemove(Map<String, dynamic> data) async {
+    final name = (data['fullName'] ?? data['name'] ?? 'this user').toString();
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Remove ${widget.isProvider ? 'Provider' : 'Customer'}?'),
+          content: Text('Are you sure you want to remove $name from HomeServe?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text('Remove ${widget.isProvider ? 'Provider' : 'Customer'}'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      await AdminUserService.instance.removeUser(
+        data['id']?.toString() ?? '',
+        widget.isProvider,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$name has been removed.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not remove user. Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

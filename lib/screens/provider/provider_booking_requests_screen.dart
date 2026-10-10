@@ -42,7 +42,11 @@ class ProviderBookingRequestsScreen extends StatelessWidget {
               final bookings = [
                 ...snapshot.data!.docs,
                 ...emergencySnapshot.data!.docs,
-              ];
+              ].where((doc) {
+                final status = doc.data()['status']?.toString() ?? 'pending';
+                return status != 'cancelled';
+              }).toList();
+              
               if (bookings.isEmpty) {
                 return const Center(child: Text('No booking requests yet.'));
               }

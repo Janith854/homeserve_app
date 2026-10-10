@@ -82,9 +82,26 @@ class AdminUserService {
   }
 
   void _validateStatus(String status) {
-    if (status != 'active' && status != 'suspended') {
+    if (status != 'active' && status != 'suspended' && status != 'removed') {
       throw ArgumentError('Invalid account status.');
     }
+  }
+
+  Future<void> removeUser(String userId, bool isProvider) async {
+    await _assertAdmin();
+    
+    final updates = {
+      'accountStatus': 'removed',
+      'removedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    
+    await _db.collection('users').doc(userId).update(updates);
+    if (isProvider) {
+      await _db.collection('providers').doc(userId).update(updates);
+    }
+    
+    await _notifyStatus(userId, 'removed', isProvider ? 'provider account' : 'customer account');
   }
 
   Future<void> _notifyStatus(String userId, String status, String subject) {

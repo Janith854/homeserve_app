@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -209,6 +210,17 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                 },
                 child: const Text('Logout', style: TextStyle(color: Colors.white)),
               ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () => _confirmDeleteAccount(context, widget.providerId),
+                child: const Text('Delete Account'),
+              ),
               const SizedBox(height: 16),
             ],
           );
@@ -274,6 +286,92 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save profile: $error')));
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, String providerId) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Account?'),
+          content: const Text('Are you sure you want to permanently delete your provider account? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Delete Account'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+    if (!context.mounted) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('Not authenticated');
+
+      // Check active bookings
+      final bookingsSnap = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('providerId', isEqualTo: providerId)
+          .where('status', whereIn: ['pending', 'confirmed', 'in_progress', 'in progress'])
+          .get();
+
+      if (bookingsSnap.docs.isNotEmpty) {
+        if (context.mounted) {
+          Navigator.pop(context); // close loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You have active bookings. Please resolve them before deleting your account.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Update Firestore documents
+      await FirebaseFirestore.instance.collection('providers').doc(providerId).update({
+        'accountStatus': 'deleted',
+        'deletedAt': FieldValue.serverTimestamp(),
+      });
+      await FirebaseFirestore.instance.collection('users').doc(providerId).update({
+        'accountStatus': 'deleted',
+        'deletedAt': FieldValue.serverTimestamp(),
+      });
+      
+      // Delete auth account
+      await user.delete();
+      
+      await authNotifier.logout();
+      if (context.mounted) {
+        Navigator.pop(context); // close loading
+        context.go(AppRouteNames.login);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not delete account. You may need to log in again first. Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

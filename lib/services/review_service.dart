@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:homeserve_app/services/notification_service.dart';
 
 class ReviewService {
   ReviewService._();
@@ -92,6 +93,13 @@ class ReviewService {
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    // Notify admins about the new complaint
+    await NotificationService.instance.notifyAdmins(
+      title: 'New Complaint',
+      message: 'A customer filed a complaint: ${subject.trim()}',
+      type: 'complaint_filed',
+      relatedId: reference.id,
+    );
     return reference.id;
   }
 
